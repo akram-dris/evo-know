@@ -40,12 +40,24 @@ docker compose ps
 ```
 
 ### 🐘 Step 3: Initialize Hybrid Databases (PostgreSQL & Neo4j)
-Execute the automated initialization script directly inside the API Gateway container via `stdin` (bypassing local virtual environment requirements):
+Execute the automated initialization script directly inside the API Gateway container. Since syntax differs across operating systems and shells, choose the command matching your terminal:
 
+**For Linux / macOS / Windows Git Bash:**
 ```bash
 docker compose exec -T api-gateway python - < scripts/init_databases.py
 ```
-*Expected Output:* Confirmation messages indicating successful creation of 10 PostgreSQL tables and Neo4j Cypher constraints.
+
+**For Windows PowerShell:**
+```powershell
+Get-Content .\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
+```
+
+**For Windows Command Prompt (CMD):**
+```cmd
+docker compose exec -T api-gateway python - < scripts/init_databases.py
+```
+
+*Expected Output:* Confirmation messages indicating successful creation of PostgreSQL tables and Neo4j constraints.
 
 ---
 

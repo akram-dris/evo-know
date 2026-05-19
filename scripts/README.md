@@ -11,9 +11,20 @@ scripts/
 
 ## ⚡ Automated Execution Guide
 
-To initialize both PostgreSQL and Neo4j without needing to install local database drivers or configure a local Python virtual environment, execute the script directly inside the already-running API Gateway container via `stdin`:
+To initialize both PostgreSQL and Neo4j without needing to install local database drivers or configure a local Python virtual environment, execute the script inside the already-running API Gateway container using the command for your shell:
 
+**For Linux / macOS / Windows Git Bash:**
 ```bash
+docker compose exec -T api-gateway python - < scripts/init_databases.py
+```
+
+**For Windows PowerShell:**
+```powershell
+Get-Content .\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
+```
+
+**For Windows Command Prompt (CMD):**
+```cmd
 docker compose exec -T api-gateway python - < scripts/init_databases.py
 ```
 

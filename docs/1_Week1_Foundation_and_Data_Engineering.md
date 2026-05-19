@@ -497,11 +497,22 @@ CREATE CONSTRAINT employee_id IF NOT EXISTS FOR (e:Employee) REQUIRE e.id IS UNI
 ```
 
 ### 3.3 Initialize Databases
-```python
-# scripts/init_databases.py
-# Run: python scripts/init_databases.py
-# Creates all PostgreSQL tables and Neo4j constraints
-```
+To initialize the PostgreSQL tables and Neo4j constraints inside the running Docker cluster, run the appropriate command for your terminal:
+
+- **Linux / macOS / Windows Git Bash:**
+  ```bash
+  docker compose exec -T api-gateway python - < scripts/init_databases.py
+  ```
+
+- **Windows PowerShell:**
+  ```powershell
+  Get-Content .\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
+  ```
+
+- **Windows Command Prompt (CMD):**
+  ```cmd
+  docker compose exec -T api-gateway python - < scripts/init_databases.py
+  ```
 
 **Deliverable**: Both databases initialized with schemas and constraints, accessible from Python.
 
