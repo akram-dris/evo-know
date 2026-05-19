@@ -15,6 +15,7 @@ class VectorStore:
 
     def add(self, embeddings: np.ndarray, chunk_ids: list[str]):
         """Adds normalized embeddings and their associated chunk UUIDs to the FAISS index."""
+        self._load_if_exists()
         start_id = self.index.ntotal
         self.index.add(embeddings)
         for i, chunk_id in enumerate(chunk_ids):
@@ -23,9 +24,14 @@ class VectorStore:
 
     def search(self, query_embedding: np.ndarray, top_k=5) -> list[dict]:
         """Searches for top-K similar chunks using cosine similarity."""
+        self._load_if_exists()
         if self.index.ntotal == 0:
             return []
             
+        # Ensure query_embedding is 2D (batch_size, dimension) for FAISS search
+        if len(query_embedding.shape) == 1:
+            query_embedding = np.expand_dims(query_embedding, axis=0)
+
         distances, indices = self.index.search(query_embedding, top_k)
         results = []
         for i, idx in enumerate(indices[0]):
@@ -38,14 +44,23 @@ class VectorStore:
 
     def save(self):
         """Persists the FAISS index and ID mapping to disk."""
-        os.makedirs(os.dirname(self.index_path), exist_ok=True)
-        faiss.write_index(self.index, f"{self.index_path}.index")
-        with open(f"{self.index_path}.map", "wb") as f:
+        index_file = f"{self.index_path}.index"
+        map_file = f"{self.index_path}.map"
+        os.makedirs(os.path.dirname(self.index_path), exist_ok=True)
+        faiss.write_index(self.index, index_file)
+        with open(map_file, "wb") as f:
             pickle.dump(self.id_map, f)
+        if os.path.exists(index_file):
+            self._last_loaded_time = os.path.getmtime(index_file)
 
     def _load_if_exists(self):
         """Loads existing FAISS index and ID mapping from disk if available."""
-        if os.path.exists(f"{self.index_path}.index") and os.path.exists(f"{self.index_path}.map"):
-            self.index = faiss.read_index(f"{self.index_path}.index")
-            with open(f"{self.index_path}.map", "rb") as f:
-                self.id_map = pickle.load(f)
+        index_file = f"{self.index_path}.index"
+        map_file = f"{self.index_path}.map"
+        if os.path.exists(index_file) and os.path.exists(map_file):
+            mtime = os.path.getmtime(index_file)
+            if not hasattr(self, "_last_loaded_time") or mtime > self._last_loaded_time:
+                self.index = faiss.read_index(index_file)
+                with open(map_file, "rb") as f:
+                    self.id_map = pickle.load(f)
+                self._last_loaded_time = mtime
