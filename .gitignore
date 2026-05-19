@@ -44,7 +44,6 @@ data/processed/*
 logs/
 temp/
 tmp/
-sample_knowledge.txt
 
 # OS & IDE
 .DS_Store

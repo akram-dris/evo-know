@@ -1,0 +1,25 @@
+Cloud-Native Knowledge Management (KM) System Architecture & Overview
+
+The Cloud-Native Knowledge Management (KM) system is an enterprise-grade, microservices-based platform designed to automate the lifecycle of organizational knowledge. Utilizing cutting-edge Artificial Intelligence (AI) and event-driven architecture, the system ensures that corporate documentation remains accurate, consistent, and continuously updated.
+
+1. Ingestion & API Gateway
+The API Gateway serves as the centralized entry point for all incoming knowledge artifacts. When a user uploads a document (PDF, DOCX, or TXT), the Gateway processes the file, parses the raw text, and splits it into semantic chunks of 512 tokens using advanced NLP chunking algorithms. Each chunk is embedded using sentence-transformers and indexed in both PostgreSQL (for structured metadata) and FAISS Vector Store (for high-speed similarity search). Simultaneously, Neo4j graph nodes are generated to represent document-to-department relationships.
+
+2. Event-Driven Orchestration via Apache Kafka
+To maintain decoupling and real-time responsiveness, the system leverages Apache Kafka. Once a document is successfully ingested, an event named 'document.ingested' is published. Multiple specialized AI microservices subscribe to this topic to perform asynchronous background tasks without blocking the main API Gateway.
+
+3. AI Microservices Ecosystem
+- T1 Prediction Service (Obsolescence Detection): Evaluates incoming document chunks against existing baseline models to predict knowledge decay and obsolescence scores.
+- T2 Report Generation Service: Uses Google Gemini LLM to synthesize comprehensive markdown summary reports of newly added knowledge and system health.
+- T3 Knowledge Fusion Service: Identifies overlapping or redundant knowledge chunks across different documents and merges them into unified, consolidated representations.
+- T4 Consistency Check Service: Scans newly ingested chunks against the existing knowledge base to detect contradictions or outdated facts, alerting administrators to resolve conflicts.
+- T5 Knowledge Discovery Service: Applies unsupervised machine learning algorithms (such as Apriori and FP-Growth via MLxtend) to mine hidden correlations and unearth latent relationships between disparate departments and concepts.
+
+4. Conversational Interface (Slack Bot)
+The system integrates directly with enterprise collaboration tools via a dedicated Slack Bot microservice. Built with FastAPI and Uvicorn, the bot listens to system events and notifies relevant channels when a document is ingested, when an obsolescence risk is detected, or when a periodic knowledge summary report is generated. Users can also query the knowledge base directly from Slack using natural language.
+
+5. Database Infrastructure
+The dual-database architecture ensures maximum flexibility and performance:
+- PostgreSQL 16: Houses core transactional tables, including documents, knowledge_chunks, audit_logs, and access_logs.
+- Neo4j 5.19: Maintains the enterprise knowledge graph, enforcing Cypher constraints and tracking complex entity relationships.
+- FAISS Vector Index: Stores dense vector embeddings in memory for sub-millisecond semantic retrieval.
