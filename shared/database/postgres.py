@@ -1,4 +1,5 @@
 import os
+import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Text, Float, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB, BYTEA, ARRAY
@@ -18,7 +19,7 @@ Base = declarative_base()
 
 class Document(Base):
     __tablename__ = "documents"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(500), nullable=False)
     source_type = Column(String(50), nullable=False)
     source_path = Column(Text)
@@ -31,7 +32,7 @@ class Document(Base):
 
 class KnowledgeChunk(Base):
     __tablename__ = "knowledge_chunks"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"))
     chunk_index = Column(Integer, nullable=False)
     content = Column(Text, nullable=False)
@@ -41,7 +42,7 @@ class KnowledgeChunk(Base):
 
 class ObsolescenceScore(Base):
     __tablename__ = "obsolescence_scores"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"))
     score = Column(Float, nullable=False)
     predicted_at = Column(DateTime, default=datetime.utcnow)
@@ -50,7 +51,7 @@ class ObsolescenceScore(Base):
 
 class UpdateReport(Base):
     __tablename__ = "update_reports"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     report_type = Column(String(50), nullable=False)
     content_md = Column(Text, nullable=False)
     generated_at = Column(DateTime, default=datetime.utcnow)
@@ -60,7 +61,7 @@ class UpdateReport(Base):
 
 class FusionEvent(Base):
     __tablename__ = "fusion_events"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     source_chunk_ids = Column(ARRAY(UUID(as_uuid=True)), nullable=False)
     merged_chunk_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_chunks.id", ondelete="SET NULL"))
     similarity_score = Column(Float)
@@ -69,7 +70,7 @@ class FusionEvent(Base):
 
 class ConsistencyIssue(Base):
     __tablename__ = "consistency_issues"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     chunk_a_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_chunks.id", ondelete="CASCADE"))
     chunk_b_id = Column(UUID(as_uuid=True), ForeignKey("knowledge_chunks.id", ondelete="CASCADE"))
     issue_type = Column(String(50))
@@ -81,7 +82,7 @@ class ConsistencyIssue(Base):
 
 class DiscoveredRelation(Base):
     __tablename__ = "discovered_relations"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     entity_a = Column(String(300), nullable=False)
     entity_b = Column(String(300), nullable=False)
     relation_type = Column(String(100))
@@ -91,7 +92,7 @@ class DiscoveredRelation(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     action = Column(String(100), nullable=False)
     service = Column(String(50), nullable=False)
     details = Column(JSONB)
@@ -100,7 +101,7 @@ class AuditLog(Base):
 
 class AccessLog(Base):
     __tablename__ = "access_logs"
-    id = Column(UUID(as_uuid=True), primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"))
     user_id = Column(String(200))
     action = Column(String(20))
