@@ -63,18 +63,33 @@ docker compose exec -T api-gateway python - < scripts/init_databases.py
 
 ## 🎯 3. Live End-to-End Pipeline Validation
 
-Once the cluster is up and databases are initialized, verify the system's core capabilities using `curl` from your terminal.
+Once the cluster is up and databases are initialized, verify the system's core capabilities using `curl` from your terminal. Choose the command matching your operating system and shell:
 
 ### 🟢 Test 1: API Gateway Health Check
 Verify that the Gateway is operational and communicating with the databases:
+
+**For Linux / macOS / Windows Git Bash:**
 ```bash
 curl -s http://127.0.0.1:8000/health
 ```
+
+**For Windows PowerShell:**
+```powershell
+curl.exe -s http://127.0.0.1:8000/health
+# Or: Invoke-RestMethod -Uri http://127.0.0.1:8000/health
+```
+
+**For Windows Command Prompt (CMD):**
+```cmd
+curl -s http://127.0.0.1:8000/health
+```
+
 *Expected Output:* `{"status":"online","service":"api-gateway","database":"healthy"}`
 
 ### 🟢 Test 2: Knowledge Ingestion & Vector Indexing
 Upload a sample knowledge document (`sample_knowledge.txt`). The system will automatically chunk, embed, store in Postgres, index in FAISS, create Neo4j graph nodes, and publish a Kafka event:
 
+**For Linux / macOS / Windows Git Bash:**
 ```bash
 curl -s -X POST "http://127.0.0.1:8000/ingest" \
   -H "accept: application/json" \
@@ -83,16 +98,53 @@ curl -s -X POST "http://127.0.0.1:8000/ingest" \
   -F "department=AI Research" \
   -F "uploaded_by=Akram Dris"
 ```
+
+**For Windows PowerShell:**
+```powershell
+curl.exe -s -X POST "http://127.0.0.1:8000/ingest" `
+  -H "accept: application/json" `
+  -H "Content-Type: multipart/form-data" `
+  -F "file=@sample_knowledge.txt" `
+  -F "department=AI Research" `
+  -F "uploaded_by=Akram Dris"
+```
+
+**For Windows Command Prompt (CMD):**
+```cmd
+curl -s -X POST "http://127.0.0.1:8000/ingest" ^
+  -H "accept: application/json" ^
+  -H "Content-Type: multipart/form-data" ^
+  -F "file=@sample_knowledge.txt" ^
+  -F "department=AI Research" ^
+  -F "uploaded_by=Akram Dris"
+```
+
 *Expected Output:* `{"status":"success","document_id":"...","chunks_created":5,"message":"Document successfully ingested..."}`
 
 ### 🟢 Test 3: Semantic Search & Retrieval
 Query the ingested knowledge base in natural language:
 
+**For Linux / macOS / Windows Git Bash:**
 ```bash
 curl -s -X POST "http://127.0.0.1:8000/query" \
   -H "Content-Type: application/json" \
   -d '{"question": "What is the role of Apache Kafka in the system?", "top_k": 1}'
 ```
+
+**For Windows PowerShell:**
+```powershell
+curl.exe -s -X POST "http://127.0.0.1:8000/query" `
+  -H "Content-Type: application/json" `
+  -d '{"question": "What is the role of Apache Kafka in the system?", "top_k": 1}'
+```
+
+**For Windows Command Prompt (CMD):**
+```cmd
+curl -s -X POST "http://127.0.0.1:8000/query" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\": \"What is the role of Apache Kafka in the system?\", \"top_k\": 1}"
+```
+
 *Expected Output:* Returns the exact matching chunk explaining Kafka orchestration with an 89.3% similarity score.
 
 ---

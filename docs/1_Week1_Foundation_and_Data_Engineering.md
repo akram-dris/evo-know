@@ -647,12 +647,32 @@ MERGE (d)-[:CONTAINS_CONCEPT {confidence: $conf}]->(c)
 ```
 
 ### 5.5 End-to-End Ingestion Test
+
+Choose the command matching your operating system and shell:
+
+**For Linux / macOS / Windows Git Bash:**
 ```bash
-# Upload a test document
 curl -X POST http://localhost:8000/ingest \
   -F "file=@data/raw/sample_report.pdf" \
   -F "department=IT" \
   -F "uploaded_by=admin"
+```
+
+**For Windows PowerShell:**
+```powershell
+curl.exe -X POST http://localhost:8000/ingest `
+  -F "file=@data/raw/sample_report.pdf" `
+  -F "department=IT" `
+  -F "uploaded_by=admin"
+```
+
+**For Windows Command Prompt (CMD):**
+```cmd
+curl -X POST http://localhost:8000/ingest ^
+  -F "file=@data/raw/sample_report.pdf" ^
+  -F "department=IT" ^
+  -F "uploaded_by=admin"
+```
 
 # Verify:
 # 1. Document record in PostgreSQL ✓
@@ -660,7 +680,6 @@ curl -X POST http://localhost:8000/ingest \
 # 3. Embeddings in FAISS index ✓
 # 4. Document node + Department node in Neo4j ✓
 # 5. 'document.ingested' event in Kafka ✓
-```
 
 **Deliverable**: Complete data ingestion pipeline — from raw file upload to searchable embeddings and graph nodes.
 
