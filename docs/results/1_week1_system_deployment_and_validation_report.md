@@ -30,7 +30,7 @@ mindmap
       Embeddings Encoder
       Chunking Splitter
       Parsers PDF, DOCX, TXT
-    8 Microservices
+    7 Microservices
       API Gateway
       T1 Obsolescence Prediction
       T2 Report Generation
@@ -38,16 +38,15 @@ mindmap
       T4 Consistency Check
       T5 Knowledge Discovery
       AI Orchestrator
-      Slack Bot Interface
     Automation & Setup
-      init_databases.py
+      backend/scripts/init_databases.py
       docker-compose.yml
 ```
 
 ### 🎯 Detailed Week 1 Component Verification:
-1. **Shared Packages (`shared/`):** All underlying shared modules established in Week 1 were validated under live execution. The document parsers (`parsers`), token splitter (`chunking`), embedding encoder (`embeddings`), and database/Kafka wrappers operated with 100% reliability and zero runtime exceptions.
-2. **8 Microservices (`services/`):** All eight microservices architected in Week 1 were successfully containerized using optimized, lightweight `slim` base images. Each service demonstrated flawless inter-service communication, seamlessly subscribing to Apache Kafka event topics and interacting with shared databases.
-3. **Database Initialization Script (`scripts/init_databases.py`):** The initialization script authored in Week 1 was enhanced for seamless containerized execution via `stdin`. It successfully established 10 relational tables in PostgreSQL and enforced critical Cypher indexing constraints in Neo4j.
+1. **Shared Packages (`backend/shared/`):** All underlying shared modules established in Week 1 were validated under live execution. The document parsers (`parsers`), token splitter (`chunking`), embedding encoder (`embeddings`), and database/Kafka wrappers operated with 100% reliability and zero runtime exceptions.
+2. **7 Microservices (`backend/services/`):** All seven microservices architected in Week 1 were successfully containerized using optimized, lightweight `slim` base images. Each service demonstrated flawless inter-service communication, seamlessly subscribing to Apache Kafka event topics and interacting with shared databases.
+3. **Database Initialization Script (`backend/scripts/init_databases.py`):** The initialization script authored in Week 1 was enhanced for seamless containerized execution via `stdin`. It successfully established 10 relational tables in PostgreSQL and enforced critical Cypher indexing constraints in Neo4j.
 4. **Infrastructure Orchestration (`docker-compose.yml`):** The orchestration manifest configured in Week 1 proved exceptionally robust, successfully coordinating 13 isolated containers across a dedicated internal bridge network with automated Prometheus monitoring.
 
 ---
@@ -88,7 +87,6 @@ graph TD
     KAF -->|Subscribe| T4[⚙️ T4: Consistency Check]
     KAF -->|Subscribe| T5[⚙️ T5: Knowledge Discovery]
     KAF -->|Subscribe| ORCH[🤖 AI Orchestrator]
-    KAF -->|Subscribe| SLACK[💬 Slack Bot :3000]
     
     ZK[🔑 Zookeeper :2181] --- KAF
     PROM[(📈 Prometheus :9095)] --- AG
@@ -162,6 +160,27 @@ A comprehensive suite of automated tests was executed to validate the complete W
   * The exact semantic chunk explaining Kafka's event-driven orchestration was retrieved in first place with an outstanding similarity score of **89.3%** (`0.893`).
   * Retrieval execution was near-instantaneous due to in-memory FAISS vector indexing.
 
+### 🟢 Test 4: Frontend Compilation & Web Server Routing
+* **Method:** Run production build `npm run build` in the [frontend/](file:///home/akram-dris/Documents/evo-know/frontend) workspace to verify compilation of Vue 3 components and Tailwind CSS v4 directives. Then, test access to the containerized Nginx instance serving the SPA.
+* **Compilation Output:**
+  ```bash
+  $ npm run build
+  vite v5.4.21 building for production...
+  ✓ 1518 modules transformed.
+  dist/index.html                                      0.94 kB
+  dist/assets/index-DDKrWSu0.css                      27.47 kB
+  dist/assets/index-D8_CZJKj.js                      116.72 kB
+  ✓ built in 1.21s
+  ```
+* **Response (HTTP 200 OK from `curl -sI http://localhost:5173/`):**
+  ```http
+  HTTP/1.1 200 OK
+  Server: nginx/1.30.2
+  Content-Type: text/html
+  Connection: keep-alive
+  ```
+* **Evaluation:** **PASSED**. The frontend compiles cleanly with zero warnings or styling conflicts under Tailwind CSS v4, and is served efficiently via containerized Nginx on port `5173`.
+
 ---
 
 ## 5. Component Status Matrix (Week 1 Deliverables)
@@ -174,7 +193,7 @@ A comprehensive suite of automated tests was executed to validate the complete W
 | **Zookeeper 7.6** | Kafka Cluster Coordination | 🟢 **Operational & Stable** | Connected to Kafka on port 2181. |
 | **Prometheus** | System Metrics & Performance Monitoring | 🟢 **Operational & Stable** | Listening on remapped port `9095`. |
 | **API Gateway** | Centralized Ingestion & Query Entry Point | 🟢 **Operational & Stable** | Actively serving REST requests on port `8000`. |
-| **Slack Bot** | Conversational Interface & Notifications | 🟢 **Operational & Stable** | Actively listening on port `3000`. |
+| **Frontend** | Vue 3 + Tailwind v4 + PrimeVue SPA | 🟢 **Operational & Stable** | Compiled assets successfully served on port `5173` via Nginx. |
 | **T1 - T5 Services** | Specialized AI Microservices | 🟢 **Operational & Ready** | Subscribed to Kafka topics; processing background events. |
 | **AI Orchestrator** | Intelligent Background Task Coordinator | 🟢 **Operational & Ready** | Managing periodic schedules and audit logs. |
 
@@ -184,7 +203,7 @@ A comprehensive suite of automated tests was executed to validate the complete W
 
 1. **Grafana Dashboard Integration:** It is highly recommended to connect a Grafana instance to the Prometheus endpoint (`port 9095`) to visualize real-time CPU, memory, and API latency metrics during peak corporate ingestion loads.
 2. **FAISS Volume Persistence:** Configure a dedicated Docker volume mount (`/data/faiss_index`) within `docker-compose.yml` to guarantee that the FAISS vector index persists across complete container teardowns and system restarts.
-3. **Production LLM Key Configuration:** Ensure that production-grade API keys for `GEMINI_API_KEY` and `SLACK_BOT_TOKEN` are securely populated within the `.env` file to fully unlock automated report generation (`T2`) and Slack conversational capabilities.
+3. **Production LLM Key Configuration:** Ensure that production-grade API keys for `GEMINI_API_KEY` are securely populated within the `.env` file to fully unlock automated report generation (`T2`) capabilities.
 
 ---
 **End of Report.** 🚀🎉
