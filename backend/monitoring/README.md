@@ -23,7 +23,6 @@ http://localhost:9095
 
 ### 🎯 Active Scraping Targets
 - **`api-gateway` (Port 8000):** Scrapes HTTP request rates, endpoint latencies (`/ingest`, `/query`), and active database connection pool statuses.
-- **`slack-bot` (Port 3000):** Scrapes Uvicorn runtime metrics and conversational event processing delays.
 - **Kafka & Zookeeper:** Tracks message throughput, consumer group lags, and broker cluster health.
 
 ---

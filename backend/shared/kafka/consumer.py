@@ -25,6 +25,8 @@ class KafkaConsumerBase:
                 if msg.error():
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         continue
+                    elif msg.error().code() == 3: # UNKNOWN_TOPIC_OR_PARTITION
+                        continue
                     else:
                         print(f"⚠️ Kafka consumer error: {msg.error()}")
                         break
