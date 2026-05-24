@@ -15,140 +15,62 @@ git init
 ### 1.2 Monorepo Structure
 The microservices architecture maps directly to the 5 selected tasks from Section 1.4.2 of the thesis, plus shared services:
 
-```
-km-update-system/
+``km-update-system/
 ├── docker-compose.yml              # Orchestrates all services locally
 ├── .env.example                    # Template for environment variables
-├── requirements-base.txt           # Shared Python dependencies
-├── README.md
+├── .gitignore                      # Git ignore paths config
+├── README.md                       # Root monorepo guide
 │
-├── services/
-│   ├── api-gateway/                # FastAPI — Single entry point (API Gateway)
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # FastAPI app, mounts sub-routers
-│   │   │   ├── routes/
-│   │   │   │   ├── ingest.py       # POST /ingest — receives new documents
-│   │   │   │   ├── query.py        # POST /query — RAG query endpoint
-│   │   │   │   └── health.py       # GET /health — healthcheck
-│   │   │   └── config.py           # Pydantic Settings
-│   │   └── tests/
-│   │
-│   ├── t1-prediction/              # Task 1: Prediction of Update Needs
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # Kafka consumer + prediction logic
-│   │   │   ├── models/
-│   │   │   │   ├── lstm_model.py   # LSTM-based forecasting
-│   │   │   │   └── prophet_model.py# Prophet-based forecasting
-│   │   │   ├── scoring.py          # Obsolescence Risk Score calculation
-│   │   │   └── config.py
-│   │   └── tests/
-│   │
-│   ├── t2-report-generation/       # Task 2: Auto Report Generation
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # Kafka consumer + LLM report generation
-│   │   │   ├── generators/
-│   │   │   │   ├── nlg_report.py   # LLM-based NLG report builder
-│   │   │   │   └── dashboard.py    # Structured data for dashboards
-│   │   │   └── config.py
-│   │   └── tests/
-│   │
-│   ├── t3-knowledge-fusion/        # Task 3: Intelligent Knowledge Fusion
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # Kafka consumer + fusion logic
-│   │   │   ├── clustering/
-│   │   │   │   ├── semantic_cluster.py  # K-Means / DBSCAN on embeddings
-│   │   │   │   └── deduplication.py     # NLP-based duplicate detection
-│   │   │   ├── merger.py           # LLM-assisted merging of duplicates
-│   │   │   └── config.py
-│   │   └── tests/
-│   │
-│   ├── t4-consistency-check/       # Task 4: Automatic Consistency Analysis
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # Kafka consumer + consistency logic
-│   │   │   ├── analyzers/
-│   │   │   │   ├── nli_checker.py  # NLI-based contradiction detection
-│   │   │   │   └── kg_validator.py # Knowledge Graph cross-referencing
-│   │   │   ├── report.py           # Consistency report builder
-│   │   │   └── config.py
-│   │   └── tests/
-│   │
-│   ├── t5-knowledge-discovery/     # Task 5: Automatic Knowledge Discovery
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # Kafka consumer + discovery logic
-│   │   │   ├── mining/
-│   │   │   │   ├── ner_extractor.py     # Named Entity Recognition
-│   │   │   │   ├── relation_miner.py    # Association Rule Mining (Apriori/FP-Growth)
-│   │   │   │   └── gnn_discovery.py     # GNN for link prediction (if feasible)
-│   │   │   └── config.py
-│   │   └── tests/
-│   │
-│   ├── slack-bot/                  # Slack Chatbot Interface
-│   │   ├── Dockerfile
-│   │   ├── requirements.txt
-│   │   ├── app/
-│   │   │   ├── __init__.py
-│   │   │   ├── main.py             # slack_bolt app + FastAPI server
-│   │   │   ├── handlers/
-│   │   │   │   ├── commands.py     # Slash commands (/km-search, /km-status)
-│   │   │   │   ├── events.py       # app_mention, message events
-│   │   │   │   └── actions.py      # Block Kit button actions
-│   │   │   ├── rag/
-│   │   │   │   └── pipeline.py     # RAG: embed query → retrieve → LLM answer
-│   │   │   └── config.py
-│   │   └── tests/
-│   │
-│   └── orchestrator/               # 5th Sub-Process: AI Orchestration
-│       ├── Dockerfile
-│       ├── requirements.txt
-│       ├── app/
-│       │   ├── __init__.py
-│       │   ├── main.py             # Scheduler + orchestration loop
-│       │   ├── scheduler.py        # APScheduler / Celery Beat
-│       │   ├── conflict_resolver.py# AI-based conflict resolution
-│       │   ├── audit_log.py        # XAI traceability logging
-│       │   └── config.py
-│       └── tests/
+├── docs/                           # Central documentation directory
+│   ├── results/
+│   │   └── 1_week1_system_deployment_and_validation_report.md
+│   ├── 0_Project_Overview.md
+│   ├── 1_Week1_Foundation_and_Data_Engineering.md
+│   ├── 2_Week2_AI_Core_5_Task_Microservices.md
+│   ├── 3_Week3_Vue_Frontend_and_AI_Orchestration.md
+│   ├── 4_Week4_Interoperability_Deployment_Evaluation.md
+│   ├── 5_Traceability_Matrix.md
+│   ├── 6_Frontend_Specification_Vue.md
+│   ├── الشرح_الكامل_بالعربية.md
+│   └── README.md
 │
-├── shared/                         # Shared Python package
-│   ├── __init__.py
-│   ├── database/
-│   │   ├── postgres.py             # SQLAlchemy models & session
-│   │   ├── neo4j_client.py         # Neo4j driver wrapper
-│   │   └── vector_store.py         # FAISS / Qdrant client
-│   ├── embeddings/
-│   │   └── encoder.py              # Sentence-Transformer embedding wrapper
-│   ├── kafka/
-│   │   ├── producer.py             # Kafka message producer
-│   │   └── consumer.py             # Kafka message consumer base class
-│   └── models/
-│       └── schemas.py              # Pydantic schemas (KnowledgeChunk, Document, etc.)
+├── frontend/                       # Vue.js 3 + Tailwind CSS v4 SPA
+│   ├── src/
+│   │   ├── main.js
+│   │   ├── App.vue
+│   │   ├── router/
+│   │   ├── stores/
+│   │   └── views/
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── Dockerfile
+│   └── README.md
 │
-├── data/
-│   ├── raw/                        # Raw enterprise documents (PDF, DOCX, TXT)
-│   └── processed/                  # Chunked & embedded data
-│
-└── scripts/
-    ├── init_databases.py           # Initialize PostgreSQL tables, Neo4j constraints
-    ├── seed_data.py                # Load sample enterprise documents
-    └── generate_embeddings.py      # Batch embed all documents
+└── backend/                        # Backend Services & Assets
+    ├── requirements-base.txt       # Shared Python dependencies
+    ├── sample_knowledge.txt        # Sample ingestion source document
+    ├── README.md                   # Backend Ecosystem overview
+    ├── services/                   # Python microservices
+    │   ├── api-gateway/            # FastAPI Port 8000
+    │   ├── t1-prediction/          # Prediction (LSTM / Prophet)
+    │   ├── t2-report-generation/   # Report Generation (LLM NLG)
+    │   ├── t3-knowledge-fusion/    # Knowledge Fusion (DBSCAN)
+    │   ├── t4-consistency-check/   # Consistency Check (Neo4j)
+    │   ├── t5-knowledge-discovery/ # Knowledge Discovery (NER / Apriori)
+    │   └── orchestrator/           # Orchestrator Beat scheduler
+    ├── shared/                     # Shared database & Kafka code
+    │   ├── database/               # Postgres, Neo4j, FAISS
+    │   ├── embeddings/             # Sentence-Transformer encoder
+    │   ├── kafka/                  # Kafka producer & consumer
+    │   └── models/                 # Shared schemas
+    ├── data/                       # Ingestion assets
+    │   ├── raw/                    # Raw PDFs, DOCX, TXT
+    │   └── processed/              # Chunked and embedded data
+    ├── scripts/                    # Init & Seeding scripts
+    │   ├── init_databases.py       # DB schema and indexing init
+    │   └── seed_data.py            # Initial dataset seeding
+    └── monitoring/                 # Prometheus setup metrics configs
+        └── prometheus.yml          # Scrape target config
 ```
 
 ### 1.3 Python Dependencies (requirements-base.txt)
@@ -157,9 +79,9 @@ km-update-system/
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 
-# Slack
-slack-bolt==1.20.0
-slack-sdk==3.31.0
+# Frontend configuration
+# Vue 3 application served on port 5173
+
 
 # AI / ML
 torch==2.3.0
@@ -211,7 +133,7 @@ Configure `.pre-commit-config.yaml` with black, flake8, isort hooks.
 
 ### 2.1 Base Dockerfile (shared across services)
 ```dockerfile
-# services/api-gateway/Dockerfile (example)
+# backend/services/api-gateway/Dockerfile (example)
 FROM python:3.10-slim
 
 WORKDIR /app
@@ -272,72 +194,103 @@ services:
 
   # --- Application Services ---
   api-gateway:
-    build: ./services/api-gateway
+    build:
+      context: ./backend
+      dockerfile: services/api-gateway/Dockerfile
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     env_file: .env
 
   t1-prediction:
-    build: ./services/t1-prediction
+    build:
+      context: ./backend
+      dockerfile: services/t1-prediction/Dockerfile
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     env_file: .env
 
   t2-report-generation:
-    build: ./services/t2-report-generation
+    build:
+      context: ./backend
+      dockerfile: services/t2-report-generation/Dockerfile
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     env_file: .env
 
   t3-knowledge-fusion:
-    build: ./services/t3-knowledge-fusion
+    build:
+      context: ./backend
+      dockerfile: services/t3-knowledge-fusion/Dockerfile
     depends_on:
-      - kafka
-      - postgres
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
     env_file: .env
 
   t4-consistency-check:
-    build: ./services/t4-consistency-check
+    build:
+      context: ./backend
+      dockerfile: services/t4-consistency-check/Dockerfile
     depends_on:
-      - kafka
-      - neo4j
+      kafka:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
     env_file: .env
 
   t5-knowledge-discovery:
-    build: ./services/t5-knowledge-discovery
+    build:
+      context: ./backend
+      dockerfile: services/t5-knowledge-discovery/Dockerfile
     depends_on:
-      - kafka
-      - neo4j
+      kafka:
+        condition: service_started
+      neo4j:
+        condition: service_healthy
     env_file: .env
 
-  slack-bot:
-    build: ./services/slack-bot
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5173:5173"
     depends_on:
       - api-gateway
     env_file: .env
 
   orchestrator:
-    build: ./services/orchestrator
+    build:
+      context: ./backend
+      dockerfile: services/orchestrator/Dockerfile
     depends_on:
-      - kafka
-      - postgres
-      - neo4j
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
     env_file: .env
 
   # --- Monitoring ---
   prometheus:
     image: prom/prometheus:v2.51.0
     ports:
-      - "9090:9090"
+      - "9095:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
 
 volumes:
   postgres_data:
@@ -501,17 +454,17 @@ To initialize the PostgreSQL tables and Neo4j constraints inside the running Doc
 
 - **Linux / macOS / Windows Git Bash:**
   ```bash
-  docker compose exec -T api-gateway python - < scripts/init_databases.py
+  docker compose exec -T api-gateway python - < backend/scripts/init_databases.py
   ```
 
 - **Windows PowerShell:**
   ```powershell
-  Get-Content .\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
+  Get-Content .\backend\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
   ```
 
 - **Windows Command Prompt (CMD):**
   ```cmd
-  docker compose exec -T api-gateway python - < scripts/init_databases.py
+  docker compose exec -T api-gateway python - < backend/scripts/init_databases.py
   ```
 
 **Deliverable**: Both databases initialized with schemas and constraints, accessible from Python.
@@ -520,12 +473,12 @@ To initialize the PostgreSQL tables and Neo4j constraints inside the running Doc
 
 ## Day 4 (Thu): Data Ingestion & NLP Preprocessing Pipeline
 
-### 4.1 Document Parser Module (`shared/parsers/`)
+### 4.1 Document Parser Module (`backend/shared/parsers/`)
 
 Supports the document types found in enterprise environments (as referenced in Ikram's memoir: PDF, DOCX, Excel, images):
 
 ```python
-# shared/parsers/document_parser.py
+# backend/shared/parsers/document_parser.py
 class DocumentParser:
     """Parses PDF, DOCX, and TXT files into raw text."""
 
@@ -546,7 +499,7 @@ class DocumentParser:
 Using recursive character text splitting (LangChain-style) with overlap to preserve context across chunk boundaries:
 
 ```python
-# shared/chunking/splitter.py
+# backend/shared/chunking/splitter.py
 class KnowledgeChunkSplitter:
     """Splits documents into semantic chunks suitable for embedding."""
 
@@ -566,7 +519,7 @@ class KnowledgeChunkSplitter:
 ### 4.3 Ingestion API Endpoint
 
 ```python
-# services/api-gateway/app/routes/ingest.py
+# backend/services/api-gateway/app/routes/ingest.py
 @router.post("/ingest")
 async def ingest_document(file: UploadFile, department: str, uploaded_by: str):
     """
@@ -597,7 +550,7 @@ async def ingest_document(file: UploadFile, department: str, uploaded_by: str):
 ### 5.2 Embedding Pipeline
 
 ```python
-# shared/embeddings/encoder.py
+# backend/shared/embeddings/encoder.py
 from sentence_transformers import SentenceTransformer
 
 class KnowledgeEncoder:
@@ -611,7 +564,7 @@ class KnowledgeEncoder:
 ### 5.3 FAISS Index Setup
 
 ```python
-# shared/database/vector_store.py
+# backend/shared/database/vector_store.py
 import faiss
 
 class VectorStore:
@@ -698,9 +651,10 @@ curl -X POST http://localhost:8000/ingest ^
 4. **Code review**: Clean up, add docstrings, commit to Git.
 
 ### Week 1 Exit Criteria:
-- [ ] Docker Compose brings up all infrastructure (Postgres, Neo4j, Kafka, Zookeeper).
-- [ ] API Gateway accepts document uploads and returns 200 OK.
-- [ ] Documents are parsed, chunked, embedded, and stored in both Postgres and FAISS.
-- [ ] Knowledge Graph has Document and Department nodes.
-- [ ] Kafka topic `document.ingested` receives messages.
-- [ ] At least 20 test documents are ingested into the system.
+- [x] Docker Compose brings up all infrastructure (Postgres, Neo4j, Kafka, Zookeeper).
+- [x] API Gateway accepts document uploads and returns 200 OK.
+- [x] Documents are parsed, chunked, embedded, and stored in both Postgres and FAISS.
+- [x] Knowledge Graph has Document and Department nodes.
+- [x] Kafka topic `document.ingested` receives messages.
+- [x] Vue 3 + Tailwind v4 + PrimeVue frontend built and served by containerized Nginx on port 5173.
+- [x] At least 20 test documents are ingested into the system.

@@ -37,7 +37,7 @@ The prediction model uses the following features per document:
 
 **Option A: Prophet (Primary — simpler, interpretable)**
 ```python
-# services/t1-prediction/app/models/prophet_model.py
+# backend/services/t1-prediction/app/models/prophet_model.py
 from prophet import Prophet
 import pandas as pd
 
@@ -69,7 +69,7 @@ class UpdateNeedPredictor:
 
 **Option B: LSTM (Advanced — if enough data)**
 ```python
-# services/t1-prediction/app/models/lstm_model.py
+# backend/services/t1-prediction/app/models/lstm_model.py
 import torch
 import torch.nn as nn
 
@@ -93,7 +93,7 @@ class LSTMPredictor(nn.Module):
 
 ### 2.1.4 Scoring Logic
 ```python
-# services/t1-prediction/app/scoring.py
+# backend/services/t1-prediction/app/scoring.py
 def compute_obsolescence_score(document_id: str) -> dict:
     """
     Combines multiple signals into a single Obsolescence Risk Score.
@@ -158,7 +158,7 @@ Consumes outputs from all other tasks (T1 scores, T3 fusions, T4 issues, T5 disc
 ### 2.2.3 LLM-Based NLG Pipeline
 
 ```python
-# services/t2-report-generation/app/generators/nlg_report.py
+# backend/services/t2-report-generation/app/generators/nlg_report.py
 import google.generativeai as genai
 
 class ReportGenerator:
@@ -194,7 +194,7 @@ Keep it professional, concise, and actionable. Use tables where appropriate.
 
 ### 2.2.4 Structured Dashboard Data
 ```python
-# services/t2-report-generation/app/generators/dashboard.py
+# backend/services/t2-report-generation/app/generators/dashboard.py
 def generate_dashboard_metrics() -> dict:
     """
     Aggregates data for a structured dashboard view.
@@ -213,7 +213,7 @@ def generate_dashboard_metrics() -> dict:
 
 ### 2.2.5 Kafka Integration
 - **Consumes**: `prediction.scored`, `fusion.completed`, `consistency.checked`, `discovery.found`
-- **Produces**: `report.generated` event (triggers Slack posting)
+- **Produces**: `report.generated` event (triggers system alerts / webhooks)
 
 **Deliverable**: A microservice that auto-generates rich reports and dashboard data.
 
@@ -255,7 +255,7 @@ Step 6: Publish fusion.completed event
 ### 2.3.3 Semantic Clustering
 
 ```python
-# services/t3-knowledge-fusion/app/clustering/semantic_cluster.py
+# backend/services/t3-knowledge-fusion/app/clustering/semantic_cluster.py
 from sklearn.cluster import DBSCAN
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -286,7 +286,7 @@ class SemanticClusterer:
 ### 2.3.4 LLM-Assisted Merging
 
 ```python
-# services/t3-knowledge-fusion/app/merger.py
+# backend/services/t3-knowledge-fusion/app/merger.py
 class KnowledgeMerger:
     def merge_chunks(self, chunks: list[str]) -> str:
         """Uses an LLM to create a single comprehensive version from duplicate chunks."""
@@ -331,7 +331,7 @@ Scans the knowledge base for contradictions, outdated information, and logical i
 ### 2.4.2 NLI-Based Contradiction Detection
 
 ```python
-# services/t4-consistency-check/app/analyzers/nli_checker.py
+# backend/services/t4-consistency-check/app/analyzers/nli_checker.py
 from transformers import pipeline
 
 class NLIConsistencyChecker:
@@ -379,7 +379,7 @@ class NLIConsistencyChecker:
 ### 2.4.3 Knowledge Graph Validation
 
 ```python
-# services/t4-consistency-check/app/analyzers/kg_validator.py
+# backend/services/t4-consistency-check/app/analyzers/kg_validator.py
 class KGValidator:
     def find_structural_issues(self):
         """
@@ -457,7 +457,7 @@ Discovers hidden relationships between knowledge entities that are not explicitl
 ### 2.5.2 Named Entity Recognition
 
 ```python
-# services/t5-knowledge-discovery/app/mining/ner_extractor.py
+# backend/services/t5-knowledge-discovery/app/mining/ner_extractor.py
 from transformers import pipeline
 
 class NERExtractor:
@@ -488,7 +488,7 @@ class NERExtractor:
 ### 2.5.3 Association Rule Mining
 
 ```python
-# services/t5-knowledge-discovery/app/mining/relation_miner.py
+# backend/services/t5-knowledge-discovery/app/mining/relation_miner.py
 from mlxtend.frequent_patterns import apriori, association_rules
 import pandas as pd
 
@@ -522,7 +522,7 @@ class RelationMiner:
 ### 2.5.4 Knowledge Graph Link Prediction
 
 ```python
-# services/t5-knowledge-discovery/app/mining/gnn_discovery.py
+# backend/services/t5-knowledge-discovery/app/mining/gnn_discovery.py
 class LinkPredictor:
     def predict_missing_links(self):
         """

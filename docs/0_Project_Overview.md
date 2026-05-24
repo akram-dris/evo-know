@@ -42,7 +42,7 @@ The supervisor confirmed (docs.txt) that it is **impossible to implement the ent
 
 Our enriched proposal introduces a novel 5th sub-process: **Automation & Orchestration by AI**. In this implementation, it manifests as a background orchestrator service that:
 - Sequences the 5 task-specific microservices.
-- Monitors the knowledge base for anomalies and triggers alerts via Slack.
+- Monitors the knowledge base for anomalies and triggers external alerts/webhooks.
 - Resolves conflicts between concurrent knowledge versions.
 - Provides traceability (audit log) of every automated decision using Explainable AI (XAI) principles.
 
@@ -59,7 +59,7 @@ Datasets will be selected and structured per-task, based on each AI technique's 
 |----------------------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | **Language**               | Python 3.10+                                                                                  | De facto standard for AI/ML, rich ecosystem (PyTorch, HuggingFace, LangChain)                             |
 | **Web Framework**          | FastAPI                                                                                       | High-performance async API framework, auto-generates OpenAPI docs, native Python type hints               |
-| **User Interface**         | Slack (via `slack_bolt` for Python)                                                           | Acts as the KM Chatbot interface; enterprise-grade; supports interactive Block Kit UI                     |
+| **User Interface**         | Vue.js 3 SPA (with Vite & Tailwind CSS)                                                       | Modern, reactive Single Page Application; built with Tailwind and PrimeVue for premium UI visual design.   |
 | **Message Broker**         | Apache Kafka (or RabbitMQ)                                                                    | Event Bus for inter-service communication (as shown in the architecture diagram)                          |
 | **Vector Database**        | FAISS (Facebook AI Similarity Search) or Qdrant                                               | Stores document embeddings for semantic search and similarity-based fusion                                |
 | **Knowledge Graph**        | Neo4j                                                                                         | Stores structured relationships between knowledge entities; supports Cypher queries                       |
@@ -73,7 +73,7 @@ Datasets will be selected and structured per-task, based on each AI technique's 
 
 ## 0.5 Cloud Native Architecture
 
-The architecture follows exactly the diagram provided by the supervisor (image copy 2.png):
+The architecture follows exactly the diagram provided by the supervisor (image copy 2.png) with the user interface implemented as a Vue.js 3 Web Application:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -92,20 +92,21 @@ The architecture follows exactly the diagram provided by the supervisor (image c
 │  │API Gateway│  │ LSTM/ ││ LLM/ ││K-Means││NLP/ ││NER/   │                │
 │  │ Entrée    │  │Prophet││ NLG  ││DBSCAN││Infer.││GNN    │                │
 │  │ Unique    │  └───────┘└──────┘└──────┘└──────┘└───────┘                │
-│  └───────────┘                                                             │
-│                     ┌─────────────────────────┐                            │
-│                     │  Base de Connaissances   │                            │
-│                     │  Centralisée             │                            │
-│                     │  ┌──────┐ ┌───────────┐  │    ┌─────────────────┐    │
-│                     │  │Donnés│ │ Métadonnées│  │    │ Service Registry│    │
-│                     │  │de Réf│ │            │  │    │ (Consul)        │    │
-│                     │  └──────┘ └───────────┘  │    ├─────────────────┤    │
-│                     └─────────────────────────┘    │ Monitoring &    │    │
-│                                                     │ Logging (ELK,  │    │
-│                     ┌─────────────────────────┐    │ Prometheus)     │    │
-│                     │  Slack Bot Interface     │    ├─────────────────┤    │
-│                     │  (User Interaction)      │    │ CI/CD Pipeline  │    │
-│                     └─────────────────────────┘    └─────────────────┘    │
+│  └─────┬─────┘                                                             │
+│        │                                                                   │
+│  ┌─────▼─────┐          ┌─────────────────────────┐                        │
+│  │ Vue 3 Web │          │  Base de Connaissances   │                        │
+│  │ Frontend  │◄────────►│  Centralisée             │                        │
+│  │ (Port 5173│          │  ┌──────┐ ┌───────────┐  │    ┌─────────────────┐ │
+│  └───────────┘          │  │Donnés│ │ Métadonnées│  │    │ Service Registry│ │
+│                         │  │de Réf│ │            │  │    │ (Consul)        │ │
+│                         │  └──────┘ └───────────┘  │    ├─────────────────┤ │
+│                         └─────────────────────────┘    │ Monitoring &    │ │
+│                                                        │ Logging (ELK,   │ │
+│                         ┌─────────────────────────┐    │ Prometheus)     │ │
+│                         │  Webhook Integrations   │    ├─────────────────┤ │
+│                         │  (Slack / MS Teams)     │    │ CI/CD Pipeline  │ │
+│                         └─────────────────────────┘    └─────────────────┘ │
 │                                                                             │
 │                    ──────────────────► Rapports de MàJ / Utilisateurs      │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -121,15 +122,15 @@ The architecture follows exactly the diagram provided by the supervisor (image c
 6. **Task 4 (Consistency)** receives fused knowledge; uses logical reasoning / ontological verification to validate.
 7. **Task 2 (Report Generation)** receives validation logs and produces update reports using NLG / LLM.
 8. All validated changes are written to the **Centralized Knowledge Base** (reference data + metadata).
-9. The **Slack Bot** sends reports and alerts to end users / downstream systems.
+9. The **Vue 3 Web Frontend** serves as the primary workspace for displaying dashboards, editing fused files, confirming consistency overrides, and reading reports. Optional **Webhook Integrations** can receive automated alerts for high-priority incidents.
 
 ## 0.6 Interoperability Dimension
 
 The thesis proposal specifically identifies the gap in interoperability. Our system addresses this through:
 - **REST APIs** (FastAPI with OpenAPI/Swagger) for integration with existing enterprise information systems.
-- **Webhook mechanisms** for push-based notifications to external systems.
+- **Webhook mechanisms** for push-based notifications to external systems (including mapping to custom corporate communication channels like Slack or Microsoft Teams).
 - **Standardized data formats** (JSON-LD, potentially RDF) for knowledge exchange.
-- **The Slack interface** itself acts as an interoperability bridge between the KM system and the daily communication tools of the organization.
+- **Unified Vue Web Client** which acts as the direct management bridge between administrators and the system.
 
 ## 0.7 Development Timeline (4 Weeks)
 
@@ -137,7 +138,7 @@ The thesis proposal specifically identifies the gap in interoperability. Our sys
 |------|--------------------------------------------------------|-------------------------------------------------------------------|
 | 1    | Foundation & Data Engineering                          | Project setup, Docker, databases, data ingestion pipeline         |
 | 2    | AI Core — The 5 Tasks                                  | Implement T1–T5 as individual microservices                       |
-| 3    | Slack Integration & AI Orchestration                   | Connect Slack Bot, RAG pipeline, proactive alerts, Orchestrator   |
+| 3    | Vue Frontend & AI Orchestration                        | Build Vue 3 Dashboard, RAG chat widget, alerts drawer, Orchestrator|
 | 4    | Interoperability, Cloud Deployment & Evaluation        | External APIs, deploy to cloud, testing, thesis documentation     |
 
 ## 0.8 Validation Strategy

@@ -56,13 +56,13 @@
 
 | Component in Diagram                              | Implementation                              |
 |---------------------------------------------------|---------------------------------------------|
-| API Gateway - Entrée Unique                        | `services/api-gateway/` (FastAPI)           |
+| API Gateway - Entrée Unique                        | `backend/services/api-gateway/` (FastAPI)   |
 | Event Bus / Message Broker (Kafka, RabbitMQ)       | Kafka in Docker Compose                     |
-| Tâche 1: Service de Prédiction des besoins de MàJ | `services/t1-prediction/`                   |
-| Tâche 2: Service de Génération auto des rapports   | `services/t2-report-generation/`            |
-| Tâche 3: Service de Fusion intelligente            | `services/t3-knowledge-fusion/`             |
-| Tâche 4: Service de Analyse auto de cohérence      | `services/t4-consistency-check/`            |
-| Tâche 5: Service de Découverte auto de connaissances| `services/t5-knowledge-discovery/`          |
+| Tâche 1: Service de Prédiction des besoins de MàJ | `backend/services/t1-prediction/`           |
+| Tâche 2: Service de Génération auto des rapports   | `backend/services/t2-report-generation/`    |
+| Tâche 3: Service de Fusion intelligente            | `backend/services/t3-knowledge-fusion/`     |
+| Tâche 4: Service de Analyse auto de cohérence      | `backend/services/t4-consistency-check/`    |
+| Tâche 5: Service de Découverte auto de connaissances| `backend/services/t5-knowledge-discovery/`  |
 | Base de Connaissances Centralisée                  | PostgreSQL + FAISS + Neo4j                  |
 | Données de Référence                               | `documents` + `knowledge_chunks` tables     |
 | Métadonnées                                         | `obsolescence_scores`, `audit_log`, etc.    |
@@ -70,7 +70,7 @@
 | Monitoring & Logging (ELK, Prometheus)             | Prometheus + ELK in Docker Compose          |
 | CI/CD Pipeline                                      | GitHub Actions                               |
 | Sources de Connaissances Externes                  | Ingestion API + parsers                     |
-| Utilisateurs Finaux / Systèmes Aval               | Slack Bot + REST API + Webhooks             |
+| Utilisateurs Finaux / Systèmes Aval               | Vue.js 3 Web Application + REST API + Webhooks |
 
 ### From Previous Memoir (SRC-2)
 
@@ -101,7 +101,7 @@
 | Named Entity Recognition (NER)            | `Jean-Baptiste/camembert-ner`                | T5              | `mining/ner_extractor.py`     |
 | Association Rule Mining (Apriori)         | `mlxtend.frequent_patterns.apriori`          | T5              | `mining/relation_miner.py`    |
 | Sentence Embeddings                       | `sentence-transformers` (MiniLM)             | Shared          | `embeddings/encoder.py`       |
-| RAG (Retrieval-Augmented Generation)      | FAISS + Gemini API                           | Slack Bot       | `rag/pipeline.py`             |
+| RAG (Retrieval-Augmented Generation)      | FAISS + Gemini API                           | Vue Frontend    | `components/widgets/RAGChatbot.vue`           |
 
 ---
 
@@ -130,10 +130,10 @@ prediction.scored
     └── → t2-report-generation (include in next report)
 
 report.generated
-    └── → slack-bot (post to #km-updates)
+    └── → DB / SSE (retrieved by Vue reports view)
 
 orchestrator.alert
-    └── → slack-bot (post to #km-alerts)
+    └── → DB / SSE (displayed in Vue active alerts dashboard)
 ```
 
 ---
@@ -160,7 +160,7 @@ orchestrator.alert
 |-----------------------------------------------------------|-------------------------------------------------------------|
 | "How does your system implement Cloud Native?"            | Docker Compose, microservice separation, Kafka event bus    |
 | "What AI techniques did you use?"                         | Section 5.3 table above + code demonstrations               |
-| "How is this different from the previous work?"           | 5th sub-process (Orchestrator), AI automation, Slack bot    |
+| "How is this different from the previous work?"           | 5th sub-process (Orchestrator), AI automation, Vue Web UI   |
 | "How does interoperability work?"                         | REST API + Swagger UI + Webhook demo                        |
 | "What datasets did you use?"                              | Synthetic enterprise documents + access logs                |
 | "What are your evaluation metrics?"                       | Section 4.4.2 metrics table + actual measurements           |

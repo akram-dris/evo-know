@@ -48,7 +48,7 @@ External Enterprise Systems (HR, ERP, CRM, Intranet)
 ### 4.1.3 RESTful API Endpoints
 
 ```python
-# services/api-gateway/app/routes/external_api.py
+# backend/services/api-gateway/app/routes/external_api.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
@@ -126,7 +126,7 @@ async def register_webhook(
 ### 4.1.4 JWT Authentication
 
 ```python
-# services/api-gateway/app/auth.py
+# backend/services/api-gateway/app/auth.py
 from jose import jwt, JWTError
 
 SECRET_KEY = os.environ["JWT_SECRET_KEY"]
@@ -151,7 +151,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials):
 ### 4.1.5 Webhook Dispatcher
 
 ```python
-# shared/webhooks/dispatcher.py
+# backend/shared/webhooks/dispatcher.py
 import httpx
 
 class WebhookDispatcher:
@@ -227,10 +227,9 @@ NEO4J_PASSWORD=<secure_password>
 # Kafka
 KAFKA_BOOTSTRAP_SERVERS=kafka:9092
 
-# Slack
-SLACK_BOT_TOKEN=xoxb-<your_token>
-SLACK_SIGNING_SECRET=<your_secret>
-SLACK_APP_TOKEN=xapp-<your_token>
+# Frontend Configuration
+FRONTEND_PORT=5173
+VITE_API_URL=http://localhost:8000/api
 
 # LLM
 GEMINI_API_KEY=<your_api_key>
@@ -251,7 +250,7 @@ version: '3.9'
 services:
   api-gateway:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/api-gateway/Dockerfile
     restart: always
     deploy:
@@ -264,7 +263,17 @@ services:
       timeout: 10s
       retries: 3
 
-  # ... (similar for all services)
+  # ... (similar for all other microservices)
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-gateway
 
   nginx:
     image: nginx:alpine
@@ -276,10 +285,10 @@ services:
       - ./certs:/etc/nginx/certs
     depends_on:
       - api-gateway
-      - slack-bot
+      - frontend
 ```
 
-### 4.2.4 NGINX Reverse Proxy (for Slack HTTPS requirement)
+### 4.2.4 NGINX Reverse Proxy
 
 ```nginx
 # nginx/nginx.conf
@@ -290,8 +299,10 @@ server {
     ssl_certificate /etc/nginx/certs/fullchain.pem;
     ssl_certificate_key /etc/nginx/certs/privkey.pem;
 
-    location /slack/ {
-        proxy_pass http://slack-bot:3000/slack/;
+    location / {
+        proxy_pass http://frontend:5173/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
 
     location /api/ {
@@ -356,14 +367,14 @@ sudo certbot certonly --standalone -d km.yourdomain.com
 curl https://km.yourdomain.com/api/v1/status
 ```
 
-### 4.3.3 Configure Slack Event URL
+### 4.3.3 Configure Outbound Webhooks for Notifications
 
-Update the Slack App settings to point to the production domain:
-- Event Subscriptions URL: `https://km.yourdomain.com/slack/events`
-- Interactivity URL: `https://km.yourdomain.com/slack/interactions`
-- Slash Commands URL: `https://km.yourdomain.com/slack/commands`
+To notify external organizational chat systems (like Slack, Microsoft Teams, or custom enterprise intranets) of crucial events:
+- Register target webhook URLs via the API Gateway endpoint `/api/v1/webhooks/register`.
+- Assign specific event triggers (e.g., `alert.obsolescence`, `report.generated`, `consistency.issue_found`).
+- The Webhook Dispatcher will broadcast signed JSON payloads to those endpoints when events are published on the Kafka bus.
 
-**Deliverable**: The system is live in the cloud, Slack bot is functional in production.
+**Deliverable**: The system is live in the cloud, and the Vue Web UI is fully functional in production.
 
 ---
 
@@ -374,15 +385,15 @@ Update the Slack App settings to point to the production domain:
 | Test ID | Scenario                                    | Expected Result                                              |
 |---------|---------------------------------------------|--------------------------------------------------------------|
 | TC-01   | Ingest a PDF document via API               | Document parsed, chunked, embedded, stored in all DBs        |
-| TC-02   | Ask the Slack bot a question                | Bot returns relevant answer with source citations            |
-| TC-03   | Ingest 2 similar documents                  | T3 detects duplicates and proposes fusion                    |
-| TC-04   | Ingest 2 contradictory documents            | T4 flags contradiction with >80% confidence                  |
+| TC-02   | Ask the Web UI chatbot widget a question     | Returns relevant answer with source citations                |
+| TC-03   | Ingest 2 similar documents                  | T3 detects duplicates and proposes fusion in the Web UI      |
+| TC-04   | Ingest 2 contradictory documents            | T4 flags contradiction in Neo4j and consistency list         |
 | TC-05   | Wait for daily scan                         | T1 assigns obsolescence scores to all documents              |
-| TC-06   | Trigger weekly report                       | T2 generates and posts a Markdown report to #km-updates      |
+| TC-06   | Trigger weekly report                       | T2 generates and renders HTML report in Vue Reports view     |
 | TC-07   | Ingest a domain-specific document           | T5 extracts entities and creates graph relationships         |
 | TC-08   | External system calls /api/v1/query         | Returns semantic search results with proper authentication   |
-| TC-09   | Obsolescence alert triggers                 | Slack message appears in #km-alerts with action buttons      |
-| TC-10   | Click "Archive" on obsolescence alert       | Document status changes to 'archived', audit log updated     |
+| TC-09   | Obsolescence alert triggers                 | Alert banner appears in Vue dashboard with action drawers    |
+| TC-10   | Click "Archive" on Vue alert drawer         | Document status changes to 'archived', audit log updated     |
 
 ### 4.4.2 AI Quality Metrics
 
@@ -406,7 +417,7 @@ Update the Slack App settings to point to the production domain:
 |---------------------------------|---------------------|
 | API response time (/query)      | < 3 seconds         |
 | Document ingestion time         | < 10 seconds/doc    |
-| Slack bot response time         | < 5 seconds         |
+| Vue App page navigation latency | < 500 ms            |
 | Daily scan completion           | < 30 minutes        |
 | Report generation               | < 1 minute          |
 | Memory usage per microservice   | < 512 MB            |
@@ -437,23 +448,23 @@ locust -f load_test.py --host=https://km.yourdomain.com
 
 ### 4.5.2 Key Diagrams for Thesis
 
-**Sequence Diagram: User Query via Slack**
+**Sequence Diagram: User Query via Vue Web UI**
 ```mermaid
 sequenceDiagram
     actor User
-    participant Slack
-    participant Bot as Slack Bot
+    participant Vue as Vue 3 Client
+    participant GW as API Gateway
     participant FAISS as Vector DB
     participant LLM as Gemini API
 
-    User->>Slack: @KM Bot what is our backup policy?
-    Slack->>Bot: app_mention event
-    Bot->>FAISS: search(embed("backup policy"))
-    FAISS-->>Bot: Top-5 relevant chunks
-    Bot->>LLM: prompt(chunks + question)
-    LLM-->>Bot: Generated answer with citations
-    Bot->>Slack: Post formatted response
-    Slack->>User: Display answer + sources
+    User->>Vue: Inputs question in Chat widget
+    Vue->>GW: POST /api/v1/query {question}
+    GW->>FAISS: search(embed("question"))
+    FAISS-->>GW: Top-5 relevant chunks
+    GW->>LLM: prompt(chunks + question)
+    LLM-->>GW: Generated answer with citations
+    GW-->>Vue: JSON {answer, sources, confidence}
+    Vue->>User: Display answer + source citations
 ```
 
 **Sequence Diagram: Orchestrator Daily Scan**
@@ -465,7 +476,7 @@ sequenceDiagram
     participant T4 as Consistency Service
     participant T5 as Discovery Service
     participant T2 as Report Service
-    participant Slack
+    participant DB as Postgres (Audit/Reports)
 
     Note over Orch: 2:00 AM — Daily Scan
     Orch->>T1: Trigger scan_predictions
@@ -478,7 +489,8 @@ sequenceDiagram
     T4-->>Orch: Issues reported
     Orch->>T2: Trigger report generation
     T2-->>Orch: Report ready
-    Orch->>Slack: Post report to #km-updates
+    Orch->>DB: Save report & post audit logs
+    Note over DB: Vue client polls DB/SSE for live dashboard updates
 ```
 
 ### 4.5.3 Thesis Chapter Mapping
@@ -499,16 +511,16 @@ sequenceDiagram
 
 ### Demo Script for Supervisor (Mme CHIKHI Imane)
 
-1. **Show architecture**: Docker containers running (`docker ps`).
-2. **Ingest a document**: Upload a French enterprise procedure PDF via the API.
+1. **Show architecture**: Docker containers running (`docker compose ps`).
+2. **Ingest a document**: Upload a French enterprise procedure PDF via the Vue Document Ingestion screen.
 3. **Watch the pipeline**: Show Kafka events flowing, T5 extracting entities, T3 checking for duplicates.
-4. **Ask a question**: `@KM Bot quelle est la procédure de sauvegarde des données?`
-5. **Show prediction**: `/km-predict` → Display obsolescence score for a test document.
-6. **Trigger alert**: Show a high-score document generating a Slack alert with action buttons.
-7. **Click "Archive"**: Demonstrate the interactive workflow.
-8. **Show weekly report**: Post the auto-generated report to `#km-updates`.
-9. **Show Knowledge Graph**: Open Neo4j Browser → Visualize concept relationships.
-10. **Show audit log**: Query the audit_log table to demonstrate XAI traceability.
+4. **Ask a question**: Input a query inside the Vue chatbot widget: *"quelle est la procédure de sauvegarde?"*
+5. **Show prediction**: Open `/prediction` view ➔ Display obsolescence curve and priorities list.
+6. **Trigger alert**: Show a high-score document generating an alert card on the Vue Dashboard.
+7. **Click "Archive"**: Click on the active alert card's archive button and verify status changes to archived.
+8. **Show weekly report**: Open `/reports` and view the HTML output of the auto-generated report.
+9. **Show Knowledge Graph**: Open the Neo4j visualization panel in `/consistency` to see the concepts network.
+10. **Show audit log**: Open `/audit` to show XAI decision explanations.
 11. **Show API docs**: Open Swagger UI to demonstrate interoperability.
 
 ### Week 4 Exit Criteria:
@@ -516,7 +528,7 @@ sequenceDiagram
 - [ ] JWT authentication protects external API access
 - [ ] Webhook mechanism sends notifications to registered external endpoints
 - [ ] System deployed to cloud (or local VM) and accessible via HTTPS
-- [ ] Slack bot operational in production environment
+- [ ] Vue.js 3 Web Application operational in production environment
 - [ ] All 10 test cases pass
 - [ ] AI quality metrics meet target thresholds
 - [ ] Architecture diagrams, sequence diagrams, and ER diagrams created

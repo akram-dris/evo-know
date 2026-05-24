@@ -21,7 +21,7 @@ git clone https://github.com/akram-dris/evo-know.git
 cd evo-know
 cp .env.example .env
 ```
-*(Optional: Open `.env` and add your active `GEMINI_API_KEY` and `SLACK_BOT_TOKEN`).*
+*(Optional: Open `.env` and add your active `GEMINI_API_KEY` and adjust `VITE_API_URL` if needed).*
 
 ### 🐳 Step 2: Build & Launch Cloud-Native Infrastructure
 Leverage Docker BuildKit cache mounts to accelerate building all 8 AI microservices, then spin up the entire cluster:
@@ -44,17 +44,17 @@ Execute the automated initialization script directly inside the API Gateway cont
 
 **For Linux / macOS / Windows Git Bash:**
 ```bash
-docker compose exec -T api-gateway python - < scripts/init_databases.py
+docker compose exec -T api-gateway python - < backend/scripts/init_databases.py
 ```
 
 **For Windows PowerShell:**
 ```powershell
-Get-Content .\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
+Get-Content .\backend\scripts\init_databases.py -Raw | docker compose exec -T api-gateway python -
 ```
 
 **For Windows Command Prompt (CMD):**
 ```cmd
-docker compose exec -T api-gateway python - < scripts/init_databases.py
+docker compose exec -T api-gateway python - < backend/scripts/init_databases.py
 ```
 
 *Expected Output:* Confirmation messages indicating successful creation of PostgreSQL tables and Neo4j constraints.
@@ -87,14 +87,14 @@ curl -s http://127.0.0.1:8000/health
 *Expected Output:* `{"status":"online","service":"api-gateway","database":"healthy"}`
 
 ### 🟢 Test 2: Knowledge Ingestion & Vector Indexing
-Upload a sample knowledge document (`sample_knowledge.txt`). The system will automatically chunk, embed, store in Postgres, index in FAISS, create Neo4j graph nodes, and publish a Kafka event:
+Upload a sample knowledge document (`backend/sample_knowledge.txt`). The system will automatically chunk, embed, store in Postgres, index in FAISS, create Neo4j graph nodes, and publish a Kafka event:
 
 **For Linux / macOS / Windows Git Bash:**
 ```bash
 curl -s -X POST "http://127.0.0.1:8000/ingest" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@sample_knowledge.txt" \
+  -F "file=@backend/sample_knowledge.txt" \
   -F "department=AI Research" \
   -F "uploaded_by=Akram Dris"
 ```
@@ -104,7 +104,7 @@ curl -s -X POST "http://127.0.0.1:8000/ingest" \
 curl.exe -s -X POST "http://127.0.0.1:8000/ingest" `
   -H "accept: application/json" `
   -H "Content-Type: multipart/form-data" `
-  -F "file=@sample_knowledge.txt" `
+  -F "file=@backend/sample_knowledge.txt" `
   -F "department=AI Research" `
   -F "uploaded_by=Akram Dris"
 ```
@@ -114,7 +114,7 @@ curl.exe -s -X POST "http://127.0.0.1:8000/ingest" `
 curl -s -X POST "http://127.0.0.1:8000/ingest" ^
   -H "accept: application/json" ^
   -H "Content-Type: multipart/form-data" ^
-  -F "file=@sample_knowledge.txt" ^
+  -F "file=@backend/sample_knowledge.txt" ^
   -F "department=AI Research" ^
   -F "uploaded_by=Akram Dris"
 ```
@@ -157,14 +157,17 @@ evo-know/
 ├── .env                            # Environment variables & secrets
 ├── README.md                       # Main Quick Start & Execution Guide
 │
-├── services/                       # 8 AI & Core Microservices (See services/README.md)
-├── shared/                         # Shared Python Libraries (See shared/README.md)
-├── scripts/                        # Database Seeding Scripts (See scripts/README.md)
 ├── docs/                           # Documentation & Reports (See docs/README.md)
-└── monitoring/                     # Prometheus Metrics Setup (See monitoring/README.md)
+├── frontend/                       # Vue.js 3 + Tailwind CSS Single Page Application (See frontend/README.md)
+└── backend/                        # Backend Services & Shared Libraries (See backend/README.md)
+    ├── services/                   # 7 AI & Core Microservices
+    ├── shared/                     # Shared Python Libraries
+    ├── scripts/                    # Database Seeding Scripts
+    └── monitoring/                 # Prometheus Metrics Setup
 ```
 
 ### 📬 Microservices Ecosystem Summary
+- **`frontend` (Port 5173):** Vue.js 3 + Tailwind CSS Single Page Application.
 - **`api-gateway` (Port 8000):** FastAPI REST entry point.
 - **`t1-prediction`:** AI obsolescence & knowledge decay forecasting.
 - **`t2-report-generation`:** Gemini LLM automated markdown report synthesis.
@@ -172,7 +175,6 @@ evo-know/
 - **`t4-consistency-check`:** NLI DeBERTa contradiction & anomaly detection.
 - **`t5-knowledge-discovery`:** Association rule mining (Apriori/FP-Growth).
 - **`orchestrator`:** Automated background daemon & scheduler.
-- **`slack-bot` (Port 3000):** Enterprise conversational interface.
 
 ---
 **Open-Source Cloud-Native Knowledge Management Platform.**
