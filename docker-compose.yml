@@ -62,7 +62,7 @@ services:
   # --- Application Services ---
   api-gateway:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/api-gateway/Dockerfile
     ports:
       - "8000:8000"
@@ -75,7 +75,7 @@ services:
 
   t1-prediction:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/t1-prediction/Dockerfile
     depends_on:
       kafka:
@@ -86,7 +86,7 @@ services:
 
   t2-report-generation:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/t2-report-generation/Dockerfile
     depends_on:
       kafka:
@@ -97,7 +97,7 @@ services:
 
   t3-knowledge-fusion:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/t3-knowledge-fusion/Dockerfile
     depends_on:
       kafka:
@@ -108,7 +108,7 @@ services:
 
   t4-consistency-check:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/t4-consistency-check/Dockerfile
     depends_on:
       kafka:
@@ -119,7 +119,7 @@ services:
 
   t5-knowledge-discovery:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/t5-knowledge-discovery/Dockerfile
     depends_on:
       kafka:
@@ -128,19 +128,19 @@ services:
         condition: service_healthy
     env_file: .env
 
-  slack-bot:
+  frontend:
     build:
-      context: .
-      dockerfile: services/slack-bot/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5173:5173"
     depends_on:
       - api-gateway
     env_file: .env
 
   orchestrator:
     build:
-      context: .
+      context: ./backend
       dockerfile: services/orchestrator/Dockerfile
     depends_on:
       kafka:
@@ -157,7 +157,7 @@ services:
     ports:
       - "9095:9090"
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
 
 volumes:
   postgres_data:
