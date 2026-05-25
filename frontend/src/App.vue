@@ -49,31 +49,31 @@ onMounted(() => {
       <nav class="flex-1 space-y-1">
         <router-link to="/" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <LayoutDashboard class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">Dashboard</span>
+          <span class="text-sm font-medium">Tableau de bord</span>
         </router-link>
         <router-link to="/prediction" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <TrendingUp class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">T1: Prediction</span>
+          <span class="text-sm font-medium">T1 : Prédiction</span>
         </router-link>
         <router-link to="/reports" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <FileText class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">T2: Reports</span>
+          <span class="text-sm font-medium">T2 : Rapports</span>
         </router-link>
         <router-link to="/fusion" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <GitMerge class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">T3: Fusion</span>
+          <span class="text-sm font-medium">T3 : Fusion</span>
         </router-link>
         <router-link to="/consistency" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <ShieldAlert class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">T4: Consistency</span>
+          <span class="text-sm font-medium">T4 : Cohérence</span>
         </router-link>
         <router-link to="/discovery" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <Cpu class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">T5: Discovery</span>
+          <span class="text-sm font-medium">T5 : Découverte</span>
         </router-link>
         <router-link to="/knowledge-base" class="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all group">
           <Database class="h-5 w-5 group-hover:text-indigo-600 transition-colors" />
-          <span class="text-sm font-medium">Knowledge Base</span>
+          <span class="text-sm font-medium">Base de connaissances</span>
         </router-link>
       </nav>
 
@@ -81,11 +81,11 @@ onMounted(() => {
       <div class="border-t border-slate-200 pt-4 space-y-1">
         <router-link to="/audit" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition-colors text-xs">
           <History class="h-4 w-4" />
-          <span>Audit Ledger (XAI)</span>
+          <span>Registre d'audit (XAI)</span>
         </router-link>
         <router-link to="/settings" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-slate-500 hover:text-slate-800 transition-colors text-xs">
           <Sliders class="h-4 w-4" />
-          <span>System Settings</span>
+          <span>Configuration</span>
         </router-link>
         <div class="flex items-center justify-between px-3 py-2 mt-4 bg-slate-100 rounded-xl border border-slate-200">
           <div class="flex items-center space-x-2">
@@ -94,7 +94,7 @@ onMounted(() => {
             </div>
             <div class="truncate w-24">
               <p class="text-xs font-medium text-slate-700 truncate">Akram Dris</p>
-              <p class="text-[9px] text-slate-500 font-mono uppercase">KM Admin</p>
+              <p class="text-[9px] text-slate-500 font-mono uppercase">Admin Système</p>
             </div>
           </div>
           <button class="text-slate-500 hover:text-slate-700">
@@ -109,10 +109,10 @@ onMounted(() => {
       <!-- Navbar / Top Header -->
       <header class="h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-10">
         <div class="flex items-center space-x-3">
-          <h2 class="font-semibold text-lg text-slate-900">KM Update Hub</h2>
+          <h2 class="font-semibold text-lg text-slate-900">Centre de mise à jour KM Hub</h2>
           <div class="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600">
             <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="text-[10px] font-mono font-medium">{{ systemStatus }}</span>
+            <span class="text-[10px] font-mono font-medium">En ligne</span>
           </div>
         </div>
         <div class="flex items-center space-x-2">

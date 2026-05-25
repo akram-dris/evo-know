@@ -15,41 +15,41 @@ import {
 
 const stats = ref([
   { 
-    name: 'T1: Obsolescence Risk', 
+    name: "T1 : Risque d'obsolescence", 
     value: '12 Docs', 
-    change: '+3 this week', 
+    change: '+3 cette semaine', 
     icon: TrendingUp, 
     color: 'text-rose-600 bg-rose-500/10 border-rose-200',
     hoverGlow: 'hover:shadow-rose-500/10 hover:border-rose-300'
   },
   { 
-    name: 'T2: Auto Reports', 
-    value: '38 Reports', 
-    change: '5 templates active', 
+    name: 'T2 : Rapports automatiques', 
+    value: '38 Rapports', 
+    change: '5 modèles actifs', 
     icon: FileCheck, 
     color: 'text-blue-600 bg-blue-500/10 border-blue-200',
     hoverGlow: 'hover:shadow-blue-500/10 hover:border-blue-300'
   },
   { 
-    name: 'T3: Semantic Fusions', 
-    value: '87 Merges', 
-    change: '-12% redundancy', 
+    name: 'T3 : Fusions sémantiques', 
+    value: '87 Fusions', 
+    change: '-12% de redondance', 
     icon: GitMerge, 
     color: 'text-emerald-600 bg-emerald-500/10 border-emerald-200',
     hoverGlow: 'hover:shadow-emerald-500/10 hover:border-emerald-300'
   },
   { 
-    name: 'T4: Consistency Index', 
+    name: 'T4 : Indice de cohérence', 
     value: '96.4%', 
-    change: '0 conflicts outstanding', 
+    change: '0 conflit en suspens', 
     icon: ShieldCheck, 
     color: 'text-indigo-600 bg-indigo-500/10 border-indigo-200',
     hoverGlow: 'hover:shadow-indigo-500/10 hover:border-indigo-300'
   },
   { 
-    name: 'T5: Mined Relations', 
-    value: '143 Links', 
-    change: '+18 GNN predictions', 
+    name: 'T5 : Relations extraites', 
+    value: '143 Liens', 
+    change: '+18 prédictions GNN', 
     icon: Lightbulb, 
     color: 'text-amber-600 bg-amber-500/10 border-amber-200',
     hoverGlow: 'hover:shadow-amber-500/10 hover:border-amber-300'
@@ -57,14 +57,14 @@ const stats = ref([
 ])
 
 const recentAlerts = ref([
-  { id: 1, title: 'Obsolescence Imminent', desc: 'Document "OSS-4G-Procedure-v2" access declined by 82% over 30 days.', time: '12 mins ago', severity: 'high', bgClass: 'bg-rose-500/5 border-rose-100 border-l-rose-500' },
-  { id: 2, title: 'Knowledge Contradiction Detected', desc: 'T4 identified conflict between backup schedules in Doc-A & Doc-B.', time: '1 hr ago', severity: 'medium', bgClass: 'bg-amber-500/5 border-amber-100 border-l-amber-500' },
+  { id: 1, title: 'Obsolescence imminente', desc: 'Accès au document "OSS-4G-Procedure-v2" en baisse de 82% sur 30 jours.', time: 'Il y a 12 min', severity: 'high', bgClass: 'bg-rose-500/5 border-rose-100 border-l-rose-500' },
+  { id: 2, title: 'Contradiction de connaissances détectée', desc: 'T4 a identifié un conflit entre les planifications de sauvegarde dans Doc-A et Doc-B.', time: 'Il y a 1 heure', severity: 'medium', bgClass: 'bg-amber-500/5 border-amber-100 border-l-amber-500' },
 ])
 
 const recentActivity = ref([
-  { id: 1, type: 'Fusion', message: 'T3 semantic cluster consolidated 4 overlapping documents in department "IT Support".', time: '2 hrs ago', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200/50' },
-  { id: 2, type: 'Report', message: 'T2 compiled weekly execution summary. Saved to centralized reports catalog.', time: '4 hrs ago', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200/50' },
-  { id: 3, type: 'Discovery', message: 'T5 extracted 8 new Concepts (NER) and linked them in Neo4j Knowledge Graph.', time: '1 day ago', badgeColor: 'bg-amber-50 text-amber-700 border-amber-200/50' },
+  { id: 1, type: 'Fusion', message: 'Le cluster sémantique T3 a consolidé 4 documents redondants dans le département "Support IT".', time: 'Il y a 2 heures', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200/50' },
+  { id: 2, type: 'Rapport', message: 'T2 a généré le résumé hebdomadaire d\'exécution. Enregistré dans le catalogue centralisé.', time: 'Il y a 4 heures', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200/50' },
+  { id: 3, type: 'Découverte', message: 'T5 a extrait 8 nouveaux concepts (NER) et les a liés dans le graphe de connaissances Neo4j.', time: 'Il y a 1 jour', badgeColor: 'bg-amber-50 text-amber-700 border-amber-200/50' },
 ])
 </script>
 
@@ -79,20 +79,20 @@ const recentActivity = ref([
       <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-700 mb-3 border border-indigo-500/20">
-            System Monitoring
+            Surveillance du système
           </span>
           <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">
             <span class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 bg-clip-text text-transparent">
-              KM Update Dashboard
+              Tableau de bord de mise à jour
             </span>
           </h1>
           <p class="text-slate-600 text-sm mt-2 max-w-xl leading-relaxed">
-            Autonomous orchestration monitoring and explainable AI insights across the enterprise knowledge base.
+            Surveillance de l'orchestration autonome et analyses d'IA explicables sur la base de connaissances de l'entreprise.
           </p>
         </div>
         <button class="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-semibold text-sm px-5 py-3 rounded-2xl flex items-center space-x-2.5 shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/35 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group">
           <Play class="h-4 w-4 fill-current transition-transform group-hover:scale-110" />
-          <span>Run Pipeline Scan</span>
+          <span>Lancer le scan du pipeline</span>
         </button>
       </div>
     </div>
@@ -125,9 +125,9 @@ const recentActivity = ref([
         <div class="flex justify-between items-center">
           <h2 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
             <AlertTriangle class="h-4.5 w-4.5 text-rose-500" />
-            <span>Active AI Alerts</span>
+            <span>Alertes d'IA actives</span>
           </h2>
-          <span class="bg-rose-500/10 border border-rose-500/20 text-rose-600 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold">2 Warning</span>
+          <span class="bg-rose-500/10 border border-rose-500/20 text-rose-600 text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold">2 Avertissements</span>
         </div>
         
         <div class="space-y-3.5">
@@ -150,7 +150,7 @@ const recentActivity = ref([
       <div class="lg:col-span-2 bg-white/90 border border-slate-200/80 p-6 rounded-3xl space-y-5 glass-panel shadow-sm">
         <h2 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
           <CheckCircle2 class="h-4.5 w-4.5 text-indigo-600" />
-          <span>Recent Execution Logs</span>
+          <span>Journaux d'exécution récents</span>
         </h2>
         
         <div class="divide-y divide-slate-100 space-y-3.5">
