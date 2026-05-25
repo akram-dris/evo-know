@@ -47,9 +47,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex overflow-hidden transition-colors duration-300">
+  <div class="min-h-screen bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 flex overflow-hidden transition-colors duration-300 relative">
+    <!-- Glowing background blobs for a beautiful, organic glassmorphic gradient glow -->
+    <div class="fixed -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-indigo-400/15 dark:bg-indigo-900/10 blur-[130px] pointer-events-none"></div>
+    <div class="fixed -bottom-40 -right-40 w-[600px] h-[600px] rounded-full bg-purple-400/15 dark:bg-purple-900/10 blur-[130px] pointer-events-none"></div>
+    <div class="fixed top-1/3 right-1/4 w-[400px] h-[400px] rounded-full bg-pink-400/8 dark:bg-pink-900/4 blur-[110px] pointer-events-none"></div>
+
     <!-- Sidebar Navigation -->
-    <aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 backdrop-blur-md flex flex-col p-4 space-y-6 shrink-0 shadow-xs">
+    <aside class="w-64 border-r border-slate-200/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/45 backdrop-blur-xl flex flex-col p-4 space-y-6 shrink-0 shadow-xs z-10">
       <!-- Logo Header -->
       <div class="flex items-center space-x-3 px-2 py-3">
         <div class="h-9 w-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
@@ -159,6 +164,6 @@ onMounted(() => {
 
 /* Custom Router active classes styling */
 .router-link-active {
-  @apply bg-indigo-500/10 text-indigo-600 dark:bg-indigo-600/15 dark:text-indigo-400 border-l-2 border-indigo-500 rounded-l-none pl-2.5!;
+  @apply bg-gradient-to-r from-indigo-500/10 to-indigo-500/[0.02] text-indigo-600 dark:from-indigo-600/15 dark:to-indigo-600/[0.03] dark:text-indigo-400 border-l-4 border-indigo-500 dark:border-indigo-400 rounded-r-xl pl-3!;
 }
 </style>
