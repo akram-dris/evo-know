@@ -84,7 +84,7 @@ def run_department_fusion(dept: str, db: Session, vector_store: VectorStore, enc
         return
 
     emb_matrix = np.array(embeddings)
-    dist_matrix = 1 - cosine_similarity(emb_matrix)
+    dist_matrix = np.clip(1 - cosine_similarity(emb_matrix), 0, None)
     clustering = DBSCAN(eps=0.15, min_samples=2, metric='precomputed')
     labels = clustering.fit_predict(dist_matrix)
     

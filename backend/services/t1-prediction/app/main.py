@@ -10,7 +10,6 @@ from shared.kafka.consumer import KafkaConsumerBase
 from shared.kafka.producer import KafkaProducerWrapper
 from shared.database.postgres import SessionLocal, Document, KnowledgeChunk, ObsolescenceScore, AuditLog, AccessLog
 from shared.database.vector_store import VectorStore
-from shared.embeddings.encoder import KnowledgeEncoder
 
 try:
     from prophet import Prophet
@@ -24,7 +23,6 @@ class T1PredictionConsumer(KafkaConsumerBase):
         super().__init__("t1-prediction-group", ["document.ingested", "access.logged"])
         self.producer = KafkaProducerWrapper()
         self.vector_store = VectorStore()
-        self.encoder = KnowledgeEncoder()
 
 def calculate_obsolescence(doc_id: str, db: Session, vector_store: VectorStore) -> dict:
     doc = db.query(Document).filter(Document.id == doc_id, Document.status == "active").first()
