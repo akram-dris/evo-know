@@ -36,7 +36,7 @@ const sendMessage = async () => {
   <div class="flex flex-col h-[500px] bg-slate-950 border border-slate-800 rounded-xl overflow-hidden glass-panel">
     <div class="p-4 border-b border-slate-850 bg-slate-900/50 flex justify-between items-center">
       <h3 class="font-medium text-slate-200">AI Knowledge Assistant</h3>
-      <span class="text-xs text-slate-400 font-mono">Gemini-2.0-Flash</span>
+      <span class="text-xs text-slate-400 font-mono">Ollama - llama3</span>
     </div>
     <!-- Message Feed -->
     <div class="flex-1 p-4 overflow-y-auto space-y-3">

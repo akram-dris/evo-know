@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from shared.database.postgres import get_db, AuditLog
 
-router = APIRouter(prefix="/audit", tags=["Audit"])
+router = APIRouter(prefix="/api/v1/audit", tags=["Audit"])
 
 @router.get("")
 async def get_audit_logs(db: Session = Depends(get_db)):

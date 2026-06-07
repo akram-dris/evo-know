@@ -3,6 +3,10 @@ import { createPinia } from 'pinia'
 import PrimeVue from 'primevue/config'
 import router from './router'
 import App from './App.vue'
+import axios from 'axios'
+
+// Set Axios base URL globally
+axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
 // Import styles
 import './style.css'

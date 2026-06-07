@@ -2,6 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app/backend
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -10,7 +13,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY services/orchestrator/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=1000 -r requirements.txt
 
-COPY shared/ /app/shared/
-COPY services/orchestrator/app/ /app/app/
+COPY . /app/backend/
 
-CMD ["python", "-m", "app.main"]
+CMD ["python", "-m", "backend.services.orchestrator.app.main"]

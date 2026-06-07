@@ -16,7 +16,7 @@ const formatDate = (dateString) => {
 
 const fetchReports = async () => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/reports`);
+    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/reports`);
     reports.value = response.data.map(report => ({
       ...report,
       content_html: md.render(report.content_md) // Convert markdown to HTML

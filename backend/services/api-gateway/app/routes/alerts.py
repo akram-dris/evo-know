@@ -3,9 +3,9 @@ from sse_starlette.sse import EventSourceResponse
 from fastapi import APIRouter, Request
 import json
 import asyncio
-from confluent_kafka import Consumer, KafkaException
+from confluent_kafka import Consumer, KafkaException, KafkaError
 
-router = APIRouter(prefix="/alerts", tags=["Alerts"])
+router = APIRouter(prefix="/api/v1/alerts", tags=["Alerts"])
 
 # Kafka consumer configuration (assuming local Kafka or accessible from local environment)
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")

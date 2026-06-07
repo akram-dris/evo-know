@@ -57,6 +57,13 @@ services:
       timeout: 5s
       retries: 5
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   # --- Application Services ---
   api-gateway:
     build:
@@ -69,7 +76,11 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      ollama:
+        condition: service_started
     env_file: .env
+    volumes:
+      - ./backend:/app/backend
 
   t1-prediction:
     build:
@@ -91,7 +102,11 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      ollama:
+        condition: service_started
     env_file: .env
+    volumes:
+      - ./backend:/app/backend
 
   t3-knowledge-fusion:
     build:
@@ -130,11 +145,15 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
     ports:
       - "5173:5173"
     depends_on:
       - api-gateway
     env_file: .env
+    environment:
+      VITE_API_URL: http://api-gateway:8000
 
   orchestrator:
     build:
@@ -160,3 +179,4 @@ services:
 volumes:
   postgres_data:
   neo4j_data:
+  ollama_data:

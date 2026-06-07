@@ -7,19 +7,13 @@ from sqlalchemy.orm import Session
 from shared.kafka.consumer import KafkaConsumerBase
 from shared.kafka.producer import KafkaProducerWrapper
 from shared.database.postgres import SessionLocal, Document, UpdateReport, AuditLog
+import ollama # Import ollama
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+# Configure Ollama client
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
-HAS_GEMINI = False
-if GEMINI_API_KEY:
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
-        HAS_GEMINI = True
-        print(f"✅ Gemini API configured using model {GEMINI_MODEL}")
-    except Exception as e:
-        print(f"⚠️ Error configuring Gemini API: {e}")
+client = ollama.Client(base_url=OLLAMA_HOST, timeout=300.0)
 
 class T2ReportConsumer(KafkaConsumerBase):
     def __init__(self):
@@ -29,26 +23,27 @@ class T2ReportConsumer(KafkaConsumerBase):
         )
         self.producer = KafkaProducerWrapper()
 
-def call_gemini_api(prompt: str) -> str:
-    """Helper to call Gemini API with error handling and fallback."""
-    if HAS_GEMINI:
-        try:
-            import google.generativeai as genai
-            model = genai.GenerativeModel(GEMINI_MODEL)
-            response = model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            print(f"⚠️ Gemini API execution failed: {e}. Falling back to rule-based generation.")
+def call_ollama_api(prompt: str) -> str:
+    """Helper to call Ollama API with error handling and fallback."""
+    try:
+        response = client.generate(
+            model=OLLAMA_MODEL,
+            prompt=prompt,
+            options={'temperature': 0.2}
+        )
+        return response['response']
+    except Exception as e:
+        print(f"⚠️ Ollama API execution failed: {e}. Falling back to rule-based generation.")
     
     return generate_fallback_report(prompt)
 
 def generate_fallback_report(prompt: str) -> str:
-    """Generates a structured mock French report when Gemini is unavailable."""
+    """Generates a structured mock French report when Ollama is unavailable or fails."""
     return f"""# 📊 Rapport d'activité EvoKnow (Génération locale)
 
 *Date de génération : {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
 
-> **Notice** : Ce rapport a été généré via le système de repli local en raison de l'absence ou de l'échec de la clé API Gemini.
+> **Avis** : Ce rapport a été généré via le système de repli local en raison de l'absence ou de l'échec de la connexion à Ollama.
 
 ## 📝 Résumé de l'analyse
 Le pipeline EvoKnow a traité les événements du cycle de vie des connaissances.
@@ -59,11 +54,11 @@ Le pipeline EvoKnow a traité les événements du cycle de vie des connaissances
 3. **Analyse de cohérence (T4)** : Détection automatique des contradictions conceptuelles.
 4. **Découverte de connaissances (T5)** : Extraction d'entités nommées et suggestion de nouvelles relations sémantiques.
 
-*Veuillez configurer une clé `GEMINI_API_KEY` valide pour obtenir des analyses rédigées par IA.*
+*Veuillez vous assurer que le service Ollama est en cours d'exécution et que le modèle `{OLLAMA_MODEL}` est disponible pour obtenir des analyses générées par l'IA.*
 """
 
 def generate_report(report_type: str, context_data: dict, db: Session) -> str:
-    """Builds prompt and calls Gemini to generate a tailored report in French."""
+    """Builds prompt and calls Ollama to generate a tailored report in French."""
     prompt = f"""Vous êtes un assistant IA spécialisé en gestion des connaissances (Knowledge Management - KM) pour EvoKnow.
 Générez un rapport professionnel structuré en Markdown, rédigé EXCLUSIVEMENT en français.
 
@@ -81,7 +76,7 @@ Instructions de structure :
 
 Rédigez un rapport complet, sans raccourcis de type "insérez ici". Soyez précis et professionnel.
 """
-    return call_gemini_api(prompt)
+    return call_ollama_api(prompt)
 
 def handle_message(topic, payload):
     print(f"📊 [T2-Report] Received event from {topic}: {payload}")

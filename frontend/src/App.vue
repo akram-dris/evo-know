@@ -25,7 +25,7 @@ onMounted(() => {
   localStorage.removeItem('theme')
 
   // Establish SSE connection for alerts
-  eventSource = new EventSource(`${import.meta.env.VITE_API_URL}/alerts/stream`);
+  eventSource = new EventSource(`${import.meta.env.VITE_API_URL}/api/v1/alerts/stream`);
   
   eventSource.onmessage = (event) => {
     const newAlert = JSON.parse(event.data);

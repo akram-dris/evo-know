@@ -5,16 +5,18 @@ from shared.database.vector_store import VectorStore
 from shared.embeddings.encoder import KnowledgeEncoder
 from shared.database.postgres import get_db, KnowledgeChunk, Document
 from sqlalchemy.orm import Session
-import google.generativeai as genai
+import ollama # Import ollama
 import os
 
-router = APIRouter(prefix="/query", tags=["Query"])
+router = APIRouter(prefix="/api/v1/query", tags=["Query"])
 encoder = KnowledgeEncoder()
 vector_store = VectorStore()
 
-# Configure Google Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-gemini_model = genai.GenerativeModel('gemini-pro')
+# Configure Ollama client
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
+
+client = ollama.Client(base_url=OLLAMA_HOST, timeout=300.0)
 
 def build_rag_prompt(question: str, chunks: list[dict]) -> str:
     """Builds a RAG prompt from the user's question and retrieved knowledge chunks."""
@@ -46,7 +48,7 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
     Semantic search endpoint that generates contextual answers using RAG.
     1. Retrieve similarity vectors from FAISS.
     2. Retrieve raw source chunks from PostgreSQL.
-    3. Generate contextual answer via Google Gemini API.
+    3. Generate contextual answer via Ollama.
     4. Return formatted JSON response with citations.
     """
     query_embedding = encoder.encode([request.question])[0]
@@ -76,14 +78,18 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
             "confidence": 0.0
         }
 
-    # 3. Generate contextual answer via Google Gemini API
+    # 3. Generate contextual answer via Ollama
     rag_prompt = build_rag_prompt(request.question, retrieved_chunks)
     try:
-        gemini_response = gemini_model.generate_content(rag_prompt)
-        answer = gemini_response.text
+        response = client.generate(
+            model=OLLAMA_MODEL,
+            prompt=rag_prompt,
+            options={'temperature': 0.2}
+        )
+        answer = response['response']
     except Exception as e:
-        print(f"Error calling Gemini API: {e}")
-        answer = "I am currently unable to generate an answer. Please try again later."
+        print(f"Error calling Ollama API: {e}")
+        answer = "I am currently unable to generate an answer using Ollama. Please try again later."
 
     # 4. Return formatted JSON response with citations and confidence
     confidence = compute_confidence_score(retrieved_chunks)
