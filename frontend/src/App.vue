@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { 
   LayoutDashboard, 
   TrendingUp, 
@@ -14,15 +14,45 @@ import {
   LogOut,
   User
 } from 'lucide-vue-next'
+import AlertCard from './components/widgets/AlertCard.vue'
 
-const notificationsCount = ref(3)
-const systemStatus = ref('Online')
+const alerts = ref([])
+let eventSource = null;
 
 onMounted(() => {
   // Ensure the document does not have the dark class
   document.documentElement.classList.remove('dark')
   localStorage.removeItem('theme')
+
+  // Establish SSE connection for alerts
+  eventSource = new EventSource(`${import.meta.env.VITE_API_URL}/alerts/stream`);
+  
+  eventSource.onmessage = (event) => {
+    const newAlert = JSON.parse(event.data);
+    alerts.value.unshift(newAlert); // Add new alert to the beginning
+    // Optionally, limit the number of displayed alerts
+    if (alerts.value.length > 5) {
+      alerts.value.pop();
+    }
+  };
+
+  eventSource.onerror = (error) => {
+    console.error("EventSource failed:", error);
+    eventSource.close();
+  };
 })
+
+onUnmounted(() => {
+  if (eventSource) {
+    eventSource.close();
+  }
+})
+
+const resolveAlert = (id, action) => {
+  console.log(`Alert ${id} resolved with action: ${action}`);
+  alerts.value = alerts.value.filter(alert => alert.id !== id);
+  // In a real app, you would send this to the backend
+}
 </script>
 
 <template>
@@ -119,7 +149,7 @@ onMounted(() => {
           <!-- Notification bell -->
           <button class="relative p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-all">
             <Bell class="h-5 w-5" />
-            <span v-if="notificationsCount > 0" class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+            <span v-if="alerts.length > 0" class="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
           </button>
         </div>
       </header>
@@ -128,6 +158,17 @@ onMounted(() => {
       <main class="flex-1 overflow-y-auto p-6">
         <router-view />
       </main>
+
+      <!-- Alerts Display Area -->
+      <transition-group name="list" tag="div" class="fixed bottom-6 right-6 z-50 space-y-3 w-80 max-h-screen overflow-y-auto">
+        <AlertCard 
+          v-for="alert in alerts" 
+          :key="alert.id" 
+          :alert="alert" 
+          @resolve="resolveAlert" 
+          class="transition-all duration-300 ease-out"
+        />
+      </transition-group>
     </div>
   </div>
 </template>
@@ -138,5 +179,14 @@ onMounted(() => {
 /* Custom Router active classes styling */
 .router-link-active {
   @apply bg-gradient-to-r from-indigo-500/10 to-indigo-500/[0.02] text-indigo-600 border-l-4 border-indigo-500 rounded-r-xl pl-3!;
+}
+
+/* Transition styles for alerts */
+.list-enter-active, .list-leave-active {
+  transition: all 0.5s ease;
+}
+.list-enter-from, .list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 </style>

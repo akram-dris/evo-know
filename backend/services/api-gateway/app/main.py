@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import health, ingest, query
+from app.routes import health, ingest, query, alerts, audit, reports
 
 app = FastAPI(
     title="KM API Gateway",
@@ -19,6 +19,9 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(ingest.router)
 app.include_router(query.router)
+app.include_router(alerts.router)
+app.include_router(audit.router)
+app.include_router(reports.router)
 
 @app.get("/")
 async def root():
