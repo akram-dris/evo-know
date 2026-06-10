@@ -8,7 +8,7 @@ ENV PYTHONPATH=/app
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev && rm -rf /var/lib/apt/lists/*
 
 COPY services/t2-report-generation/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=1000 -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=3600 -r requirements.txt
 
 COPY shared/ /app/shared/
 COPY services/t2-report-generation/app/ /app/app/

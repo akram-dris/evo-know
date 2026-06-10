@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY services/orchestrator/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=1000 -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=3600 -r requirements.txt
 
 COPY . /app/backend/
 
