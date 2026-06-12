@@ -5,6 +5,7 @@ from datetime import datetime
 from shared.kafka.consumer import KafkaConsumerBase
 from shared.database.postgres import SessionLocal, AuditLog
 from shared.kafka.producer import KafkaProducer # Import KafkaProducer
+from shared.webhooks.dispatcher import WebhookDispatcher
 
 producer = KafkaProducer() # Initialize Kafka Producer globally
 
@@ -23,6 +24,7 @@ class KMOrchestrator:
     """
     def __init__(self):
         self.db = SessionLocal()
+        self.dispatcher = WebhookDispatcher()
 
     def _log_xai_audit(self, action: str, explanation: str, service: str, details: dict = None):
         try:
@@ -202,6 +204,12 @@ class KMOrchestrator:
                 service="orchestrator",
                 details=payload
             )
+
+        # Dispatch webhooks to external enterprise subscribers
+        try:
+            self.dispatcher.dispatch(topic, payload)
+        except Exception as e:
+            print(f"⚠️ [Orchestrator] Error dispatching webhook for {topic}: {e}")
 
     def __del__(self):
         self.db.close()

@@ -2,8 +2,12 @@ import os
 import sys
 import time
 import psycopg2
+import hashlib
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
+
+def get_password_hash(password: str) -> str:
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 # Load environment variables
 try:
@@ -114,6 +118,23 @@ CREATE TABLE IF NOT EXISTS access_logs (
     accessed_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS webhooks (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    url             VARCHAR(1000) NOT NULL,
+    events          VARCHAR(100)[] NOT NULL,
+    secret          VARCHAR(500) NOT NULL,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username        VARCHAR(100) UNIQUE NOT NULL,
+    password_hash   VARCHAR(300) NOT NULL,
+    email           VARCHAR(255),
+    role            VARCHAR(50) NOT NULL,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_chunks_document ON knowledge_chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_obsolescence_document ON obsolescence_scores(document_id);
@@ -145,8 +166,134 @@ def init_postgres():
             with conn.cursor() as cur:
                 print("⚡ Executing PostgreSQL schema creation...")
                 cur.execute(SQL_SCHEMA)
+                
+                print("🌱 Seeding default users (Admin, Expert, Reader)...")
+                users_data = [
+                    ("admin", get_password_hash("admin_pass_2026"), "admin@evoknow.com", "Admin"),
+                    ("expert", get_password_hash("expert_pass_2026"), "expert@evoknow.com", "Expert"),
+                    ("reader", get_password_hash("reader_pass_2026"), "reader@evoknow.com", "Reader")
+                ]
+                for username, pwd_hash, email, role in users_data:
+                    cur.execute(
+                        """
+                        INSERT INTO users (username, password_hash, email, role)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (username) DO NOTHING;
+                        """,
+                        (username, pwd_hash, email, role)
+                    )
+
+                # Check if data already exists to prevent duplicate seeding
+                cur.execute("SELECT COUNT(*) FROM documents;")
+                if cur.fetchone()[0] == 0:
+                    print("🌱 Seeding demonstration data (Documents, Chunks, Scores, Contradictions, Relations)...")
+                    
+                    # 1. Seed Documents
+                    docs = [
+                        ("OSS-4G-Procedure-v2", "pdf", "/data/raw/OSS-4G-Procedure-v2.pdf", "IT Support", "Akram Dris", "active"),
+                        ("Backup-Policy-2025", "docx", "/data/raw/Backup-Policy-2025.docx", "Infrastructure", "Asma", "active"),
+                        ("Security-Protocol-v1", "txt", "/data/raw/Security-Protocol-v1.txt", "Security", "TestUser", "active"),
+                        ("Cloud-Architecture-Specs", "pdf", "/data/raw/Cloud-Architecture-Specs.pdf", "R&D", "Admin", "active")
+                    ]
+                    doc_ids = []
+                    for title, src_type, src_path, dept, uploaded_by, status in docs:
+                        cur.execute(
+                            """
+                            INSERT INTO documents (title, source_type, source_path, department, uploaded_by, status)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            RETURNING id;
+                            """,
+                            (title, src_type, src_path, dept, uploaded_by, status)
+                        )
+                        doc_ids.append(cur.fetchone()[0])
+
+                    # 2. Seed Knowledge Chunks
+                    chunks = [
+                        (doc_ids[0], 0, "Cette procédure décrit le déploiement du réseau d'accès radio 4G LTE. Le processus nécessite l'arrêt périodique des émetteurs-récepteurs toutes les 24 heures pour effectuer l'étalonnage thermique."),
+                        (doc_ids[1], 0, "Politique de sauvegarde de l'infrastructure: Sauvegarde incrémentielle quotidienne programmée chaque nuit à 02:00 du matin. Les données sont répliquées vers le serveur secondaire."),
+                        (doc_ids[2], 0, "Protocole de sécurité général: Toutes les sauvegardes de serveurs de production doivent s'exécuter strictement à 04:00 du matin pour éviter les pics de charge réseau et les conflits d'accès."),
+                        (doc_ids[3], 0, "Spécifications de l'architecture cloud native: Utilisation de Kubernetes pour l'orchestration des conteneurs Docker, avec API Gateway FastAPI et bus d'événements Kafka.")
+                    ]
+                    chunk_ids = []
+                    for doc_id, idx, content in chunks:
+                        cur.execute(
+                            """
+                            INSERT INTO knowledge_chunks (document_id, chunk_index, content, token_count)
+                            VALUES (%s, %s, %s, %s)
+                            RETURNING id;
+                            """,
+                            (doc_id, idx, content, len(content.split()))
+                        )
+                        chunk_ids.append(cur.fetchone()[0])
+
+                    # 3. Seed Obsolescence Scores
+                    scores = [
+                        (doc_ids[0], 0.85, '{"age_factor": 0.9, "access_decline": 0.8}'),
+                        (doc_ids[1], 0.32, '{"age_factor": 0.2, "access_decline": 0.4}'),
+                        (doc_ids[2], 0.72, '{"age_factor": 0.8, "access_decline": 0.6}'),
+                        (doc_ids[3], 0.15, '{"age_factor": 0.1, "access_decline": 0.2}')
+                    ]
+                    for doc_id, score, factors_json in scores:
+                        cur.execute(
+                            """
+                            INSERT INTO obsolescence_scores (document_id, score, model_version, factors)
+                            VALUES (%s, %s, 'Ensemble-LSTM-Prophet-v1', %s);
+                            """,
+                            (doc_id, score, factors_json)
+                        )
+
+                    # 4. Seed Consistency Issues (T4 Contradictions)
+                    # Contradiction between Backup-Policy-2025 (Daily at 2AM) and Security-Protocol-v1 (Daily at 4AM)
+                    cur.execute(
+                        """
+                        INSERT INTO consistency_issues (chunk_a_id, chunk_b_id, issue_type, confidence, description, resolved)
+                        VALUES (%s, %s, 'Contradiction', 0.88, 'Conflit de planification de sauvegarde détecté : Daily at 02:00 vs Daily at 04:00.', FALSE);
+                        """,
+                        (chunk_ids[1], chunk_ids[2])
+                    )
+
+                    # 5. Seed Discovered Relations (T5 Relations)
+                    relations = [
+                        ("Kubernetes", "Docker", "DEPENDS_ON", 0.92, "NER+Apriori"),
+                        ("FastAPI", "Uvicorn", "RUNS_ON", 0.98, "NER+Apriori"),
+                        ("Kafka", "ZooKeeper", "DEPENDS_ON", 0.95, "NER+Apriori")
+                    ]
+                    for ent_a, ent_b, rel_type, conf, method in relations:
+                        cur.execute(
+                            """
+                            INSERT INTO discovered_relations (entity_a, entity_b, relation_type, confidence, method)
+                            VALUES (%s, %s, %s, %s, %s);
+                            """,
+                            (ent_a, ent_b, rel_type, conf, method)
+                        )
+
+                    # 6. Seed Fusion Events (T3 Merges)
+                    cur.execute(
+                        """
+                        INSERT INTO fusion_events (source_chunk_ids, merged_chunk_id, similarity_score, method)
+                        VALUES (%s, %s, 0.91, 'DBSCAN-LLM');
+                        """,
+                        ([chunk_ids[0], chunk_ids[1]], chunk_ids[3])
+                    )
+
+                    # 7. Seed Audit Logs (XAI explanations)
+                    audit_logs = [
+                        ("document_ingestion_orchestrated", "orchestrator", '{"title": "Cloud-Architecture-Specs"}', "Nouveau document 'Cloud-Architecture-Specs' ingéré pour 'R&D'. L'orchestrateur déclenche les processus d'extraction et de calcul."),
+                        ("prediction_scored_orchestrated", "orchestrator", '{"score": 0.85}', "Score d'obsolescence (T1) calculé pour le document OSS-4G-Procedure-v2: 0.85. Alerte d'obsolescence élevée transmise au tableau de bord."),
+                        ("consistency_checked_orchestrated", "orchestrator", '{"conflicts_found_count": 1}', "Étape Vérification de Cohérence (T4) terminée. 1 contradiction textuelle identifiée entre Backup-Policy-2025 et Security-Protocol-v1."),
+                        ("fusion_orchestrated", "orchestrator", '{"merged_chunk_id": "'+str(chunk_ids[3])+'"}', "Étape Fusion Sémantique (T3) terminée. L'orchestrateur a fusionné 2 fragments de connaissances redondants dans R&D."),
+                        ("discovery_orchestrated", "orchestrator", '{"new_relations_count": 3}', "Nouvelles connaissances découvertes (T5). 3 relations d'association extraites via Apriori et NER.")
+                    ]
+                    for action, service, details, explanation in audit_logs:
+                        cur.execute(
+                            """
+                            INSERT INTO audit_log (action, service, details, explanation)
+                            VALUES (%s, %s, %s, %s);
+                            """,
+                            (action, service, details, explanation)
+                        )
             conn.close()
-            print("✅ PostgreSQL tables and indexes initialized successfully.")
+            print("✅ PostgreSQL tables and indexes initialized & seeded successfully.")
             return
         except Exception as e:
             print(f"⚠️ PostgreSQL connection attempt {attempt} failed: {e}")

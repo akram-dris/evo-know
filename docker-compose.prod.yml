@@ -1,0 +1,256 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure ---
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: km_knowledge_base
+      POSTGRES_USER: km_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-km_secure_password_2026}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U km_admin -d km_knowledge_base"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5.19-community
+    restart: always
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-neo4j_secure_password_2026}
+    ports:
+      - "7474:7474"  # Browser
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    restart: always
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "cub kafka-ready 1 40 -b kafka:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: always
+    volumes:
+      - ollama_data:/root/.ollama
+    # Note: CPU only. In real prod with GPU, we can expose the GPU devices.
+
+  # --- Application Services ---
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: services/api-gateway/Dockerfile
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    env_file: .env
+    volumes:
+      - ./backend:/app/backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  t1-prediction:
+    build:
+      context: ./backend
+      dockerfile: services/t1-prediction/Dockerfile
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  t2-report-generation:
+    build:
+      context: ./backend
+      dockerfile: services/t2-report-generation/Dockerfile
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    env_file: .env
+    volumes:
+      - ./backend:/app/backend
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  t3-knowledge-fusion:
+    build:
+      context: ./backend
+      dockerfile: services/t3-knowledge-fusion/Dockerfile
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  t4-consistency-check:
+    build:
+      context: ./backend
+      dockerfile: services/t4-consistency-check/Dockerfile
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    env_file: .env
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  t5-knowledge-discovery:
+    build:
+      context: ./backend
+      dockerfile: services/t5-knowledge-discovery/Dockerfile
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    env_file: .env
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time API URL pointing through the reverse proxy route
+        VITE_API_URL: http://localhost/api
+    restart: always
+    depends_on:
+      - api-gateway
+    env_file: .env
+    environment:
+      VITE_API_URL: http://localhost/api
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  orchestrator:
+    build:
+      context: ./backend
+      dockerfile: services/orchestrator/Dockerfile
+    restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    env_file: .env
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # --- Edge Load Balancer & Proxy ---
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - api-gateway
+
+  # --- Monitoring ---
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    restart: always
+    ports:
+      - "9095:9090"
+    volumes:
+      - ./backend/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  ollama_data:

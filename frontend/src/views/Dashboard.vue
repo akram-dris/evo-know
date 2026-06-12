@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import axios from 'axios'
 import { 
   TrendingUp, 
   FileCheck, 
@@ -13,59 +14,49 @@ import {
   ChevronRight
 } from 'lucide-vue-next'
 
-const stats = ref([
-  { 
-    name: "T1 : Risque d'obsolescence", 
-    value: '12 Docs', 
-    change: '+3 cette semaine', 
-    icon: TrendingUp, 
-    color: 'text-rose-600 bg-rose-500/10 border-rose-200',
-    hoverGlow: 'hover:shadow-rose-500/10 hover:border-rose-300'
-  },
-  { 
-    name: 'T2 : Rapports automatiques', 
-    value: '38 Rapports', 
-    change: '5 modèles actifs', 
-    icon: FileCheck, 
-    color: 'text-blue-600 bg-blue-500/10 border-blue-200',
-    hoverGlow: 'hover:shadow-blue-500/10 hover:border-blue-300'
-  },
-  { 
-    name: 'T3 : Fusions sémantiques', 
-    value: '87 Fusions', 
-    change: '-12% de redondance', 
-    icon: GitMerge, 
-    color: 'text-emerald-600 bg-emerald-500/10 border-emerald-200',
-    hoverGlow: 'hover:shadow-emerald-500/10 hover:border-emerald-300'
-  },
-  { 
-    name: 'T4 : Indice de cohérence', 
-    value: '96.4%', 
-    change: '0 conflit en suspens', 
-    icon: ShieldCheck, 
-    color: 'text-indigo-600 bg-indigo-500/10 border-indigo-200',
-    hoverGlow: 'hover:shadow-indigo-500/10 hover:border-indigo-300'
-  },
-  { 
-    name: 'T5 : Relations extraites', 
-    value: '143 Liens', 
-    change: '+18 prédictions GNN', 
-    icon: Lightbulb, 
-    color: 'text-amber-600 bg-amber-500/10 border-amber-200',
-    hoverGlow: 'hover:shadow-amber-500/10 hover:border-amber-300'
-  },
-])
+const stats = ref([])
+const recentAlerts = ref([])
+const recentActivity = ref([])
+const loading = ref(true)
 
-const recentAlerts = ref([
-  { id: 1, title: 'Obsolescence imminente', desc: 'Accès au document "OSS-4G-Procedure-v2" en baisse de 82% sur 30 jours.', time: 'Il y a 12 min', severity: 'high', bgClass: 'bg-rose-500/5 border-rose-100 border-l-rose-500' },
-  { id: 2, title: 'Contradiction de connaissances détectée', desc: 'T4 a identifié un conflit entre les planifications de sauvegarde dans Doc-A et Doc-B.', time: 'Il y a 1 heure', severity: 'medium', bgClass: 'bg-amber-500/5 border-amber-100 border-l-amber-500' },
-])
+const fetchDashboardData = async () => {
+  try {
+    const res = await axios.get('/api/v1/dashboard/stats')
+    stats.value = res.data.stats.map((item, idx) => {
+      const icons = [TrendingUp, FileCheck, GitMerge, ShieldCheck, Lightbulb]
+      const colors = [
+        'text-rose-600 bg-rose-500/10 border-rose-200',
+        'text-blue-600 bg-blue-500/10 border-blue-200',
+        'text-emerald-600 bg-emerald-500/10 border-emerald-200',
+        'text-indigo-600 bg-indigo-500/10 border-indigo-200',
+        'text-amber-600 bg-amber-500/10 border-amber-200'
+      ]
+      const glows = [
+        'hover:shadow-rose-500/10 hover:border-rose-300',
+        'hover:shadow-blue-500/10 hover:border-blue-300',
+        'hover:shadow-emerald-500/10 hover:border-emerald-300',
+        'hover:shadow-indigo-500/10 hover:border-indigo-300',
+        'hover:shadow-amber-500/10 hover:border-amber-300'
+      ]
+      return {
+        ...item,
+        icon: icons[idx],
+        color: colors[idx],
+        hoverGlow: glows[idx]
+      }
+    })
+    recentAlerts.value = res.data.recentAlerts
+    recentActivity.value = res.data.recentActivity
+  } catch (err) {
+    console.error("Error fetching dashboard data:", err)
+  } finally {
+    loading.value = false
+  }
+}
 
-const recentActivity = ref([
-  { id: 1, type: 'Fusion', message: 'Le cluster sémantique T3 a consolidé 4 documents redondants dans le département "Support IT".', time: 'Il y a 2 heures', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200/50' },
-  { id: 2, type: 'Rapport', message: 'T2 a généré le résumé hebdomadaire d\'exécution. Enregistré dans le catalogue centralisé.', time: 'Il y a 4 heures', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200/50' },
-  { id: 3, type: 'Découverte', message: 'T5 a extrait 8 nouveaux concepts (NER) et les a liés dans le graphe de connaissances Neo4j.', time: 'Il y a 1 jour', badgeColor: 'bg-amber-50 text-amber-700 border-amber-200/50' },
-])
+onMounted(() => {
+  fetchDashboardData()
+})
 </script>
 
 <template>

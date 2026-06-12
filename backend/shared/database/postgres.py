@@ -107,6 +107,23 @@ class AccessLog(Base):
     action = Column(String(20))
     accessed_at = Column(DateTime, default=datetime.utcnow)
 
+class Webhook(Base):
+    __tablename__ = "webhooks"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    url = Column(String(1000), nullable=False)
+    events = Column(ARRAY(String), nullable=False)
+    secret = Column(String(500), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username = Column(String(100), unique=True, nullable=False)
+    password_hash = Column(String(300), nullable=False)
+    email = Column(String(255))
+    role = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 def get_db():
     db = SessionLocal()
     try:
