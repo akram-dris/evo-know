@@ -70,6 +70,58 @@ docker exec -i evo-know-api-gateway-1 python - < backend/scripts/init_databases.
 
 ---
 
+## 🔧 2. Post-Deployment Setup & Application Access Guide
+
+After launching the Docker containers using either the default profile or the production profile (`docker-compose.prod.yml`), you must follow these steps to initialize the databases, download the AI models, and access the application.
+
+### 🐘 Step 2.1: Initialize & Seed Hybrid Databases (PostgreSQL & Neo4j)
+Run the database initialization script inside the `api-gateway` container. This creates all tables in PostgreSQL, sets constraints in Neo4j, and seeds the system with default user accounts and rich demonstration data (documents, obsolescence scores, semantic fusion events, contradictions, discovered relations, and audit logs).
+
+**For Production Mode:**
+```bash
+docker compose -f docker-compose.prod.yml exec api-gateway python backend/scripts/init_databases.py
+```
+
+**For Standard/Development Mode:**
+```bash
+docker compose exec api-gateway python backend/scripts/init_databases.py
+```
+
+### 🧠 Step 2.2: Download Local AI Models (Ollama)
+EvoKnow runs 100% locally. Before using AI features (like Report Generation and RAG queries), you must pull the `llama3` language model into the running Ollama container:
+
+**For Production Mode:**
+```bash
+docker compose -f docker-compose.prod.yml exec ollama ollama pull llama3
+```
+
+**For Standard/Development Mode:**
+```bash
+docker compose exec ollama ollama pull llama3
+```
+*(Wait for the download to complete and print `success`).*
+
+### 🌐 Step 2.3: Accessing the Web Interface
+Once the services are active and the databases are seeded, you can open your browser and navigate to the application.
+
+*   **Production Deployment URL:** Open your browser and navigate to **`http://localhost`** (runs on port `80` managed by Nginx proxy).
+*   **Development Deployment URL:** If running in standard dev mode, go to **`http://localhost:5173`** (Vue.js frontend server).
+
+### 👤 Seeded User Accounts (Human Credentials)
+The system is pre-seeded with three default accounts representing different roles and job descriptions. You can log in using these credentials directly on the login page:
+
+| Username | Password | Email | Role | Core Permissions & Capabilities |
+| :--- | :--- | :--- | :--- | :--- |
+| `admin` | `admin_pass_2026` | `admin@evoknow.com` | **Admin** | Full system configuration, XAI audit control, prompt tuning, overriding AI decisions. |
+| `expert` | `expert_pass_2026` | `expert@evoknow.com` | **Expert** | Deduplication, conflict resolution, entity relation approval. |
+| `reader` | `reader_pass_2026` | `reader@evoknow.com` | **Reader** | Read-only access to dashboard, knowledge catalog, and RAG assistant. |
+
+### 🔌 API Documentation & Interoperability
+You can access the interactive FastAPI Swagger documentation to inspect, test, and authenticate API routes:
+*   **Swagger API Docs:** **`http://localhost/docs`** (or `http://localhost:8000/docs`)
+
+---
+
 ## 🎯 3. Live End-to-End Pipeline Validation
 
 Once the cluster is up and databases are initialized, verify the system's core capabilities using `curl` from your terminal. Choose the command matching your operating system and shell:
