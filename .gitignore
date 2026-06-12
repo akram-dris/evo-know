@@ -49,6 +49,8 @@ frontend/.vite/
 logs/
 temp/
 tmp/
+docker_logs.txt
+tree.txt
 
 # OS & IDE
 .DS_Store
