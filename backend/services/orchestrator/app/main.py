@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime
 from shared.kafka.consumer import KafkaConsumerBase
 from shared.database.postgres import SessionLocal, AuditLog
-from shared.kafka.producer import KafkaProducer # Import KafkaProducer
+from shared.kafka.producer import KafkaProducerWrapper
 from shared.webhooks.dispatcher import WebhookDispatcher
 
-producer = KafkaProducer() # Initialize Kafka Producer globally
+producer = KafkaProducerWrapper() # Initialize Kafka Producer globally
 
 # Placeholder functions for external interactions (in a real system, these would interact with other services)
 def archive_chunk(chunk_id: str):
@@ -15,7 +15,7 @@ def archive_chunk(chunk_id: str):
 
 def raise_dashboard_alert(alert_details: dict):
     print(f"ACTION: Publishing dashboard alert to Kafka: {json.dumps(alert_details, indent=2)}")
-    producer.produce("orchestrator.alert", alert_details)
+    producer.publish("orchestrator.alert", alert_details)
 
 class KMOrchestrator:
     """

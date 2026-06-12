@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY services/t4-consistency-check/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip pip install torch==2.3.0 --index-url https://download.pytorch.org/whl/cpu
+RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=3600 --retries=20 torch==2.3.0 --index-url https://download.pytorch.org/whl/cpu
 RUN --mount=type=cache,target=/root/.cache/pip pip install --default-timeout=3600 -r requirements.txt
 
 COPY shared/ /app/shared/
