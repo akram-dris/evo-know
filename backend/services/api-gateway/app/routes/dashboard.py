@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from shared.database.postgres import (
     get_db, Document, UpdateReport, FusionEvent, 
@@ -41,7 +41,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
         bg = "bg-rose-500/5 border-rose-100 border-l-rose-500" if severity == "critical" else "bg-amber-500/5 border-amber-100 border-l-amber-500"
         
         # Calculate time elapsed
-        diff = datetime.utcnow() - a.performed_at
+        diff = datetime.now(timezone.utc) - a.performed_at
         if diff.seconds < 60:
             time_str = "Il y a quelques instants"
         elif diff.seconds < 3600:
@@ -91,7 +91,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
             badge_type = "Découverte"
             color = "bg-amber-50 text-amber-700 border-amber-200/50"
             
-        diff = datetime.utcnow() - act.performed_at
+        diff = datetime.now(timezone.utc) - act.performed_at
         if diff.seconds < 60:
             time_str = "A l'instant"
         elif diff.seconds < 3600:
