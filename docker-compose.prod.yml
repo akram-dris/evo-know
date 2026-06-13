@@ -198,13 +198,13 @@ services:
       dockerfile: Dockerfile
       args:
         # Build-time API URL pointing through the reverse proxy route
-        VITE_API_URL: http://localhost/api
+        VITE_API_URL: http://localhost
     restart: always
     depends_on:
       - api-gateway
     env_file: .env
     environment:
-      VITE_API_URL: http://localhost/api
+      VITE_API_URL: http://localhost
     deploy:
       resources:
         limits:
