@@ -271,7 +271,7 @@ def init_postgres():
                     cur.execute(
                         """
                         INSERT INTO fusion_events (source_chunk_ids, merged_chunk_id, similarity_score, method)
-                        VALUES (%s, %s, 0.91, 'DBSCAN-LLM');
+                        VALUES (%s::uuid[], %s, 0.91, 'DBSCAN-LLM');
                         """,
                         ([chunk_ids[0], chunk_ids[1]], chunk_ids[3])
                     )
