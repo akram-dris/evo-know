@@ -4,10 +4,13 @@ from datetime import datetime, timezone
 
 from shared.database.postgres import (
     get_db, Document, UpdateReport, FusionEvent, 
-    ConsistencyIssue, DiscoveredRelation, AuditLog, ObsolescenceScore
+    ConsistencyIssue, DiscoveredRelation, AuditLog, ObsolescenceScore,
+    KnowledgeChunk
 )
+from shared.kafka.producer import KafkaProducerWrapper
 
 router = APIRouter(prefix="/api/v1/dashboard", tags=["Dashboard"])
+kafka_producer = KafkaProducerWrapper()
 
 @router.get("/stats")
 async def get_dashboard_stats(db: Session = Depends(get_db)):
@@ -118,3 +121,37 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
         "recentAlerts": recent_alerts_payload,
         "recentActivity": recent_activities_payload
     }
+
+@router.post("/scan")
+async def trigger_pipeline_scan(db: Session = Depends(get_db)):
+    """
+    Manually triggers the KM pipeline analysis on all existing documents
+    by re-publishing 'document.ingested' events to Kafka.
+    """
+    documents = db.query(Document).filter(Document.status == 'active').all()
+    if not documents:
+        return {"status": "success", "message": "Aucun document actif trouvé pour le scan."}
+        
+    for doc in documents:
+        # Get chunk count
+        chunk_count = db.query(KnowledgeChunk).filter(KnowledgeChunk.document_id == doc.id).count()
+        
+        # Publish Kafka event
+        kafka_producer.publish("document.ingested", {
+            "document_id": str(doc.id),
+            "title": doc.title,
+            "department": doc.department,
+            "uploaded_by": doc.uploaded_by or "system",
+            "chunks_count": chunk_count
+        })
+        
+    # Also log to audit
+    audit = AuditLog(
+        action="manual_pipeline_scan_triggered",
+        service="api-gateway",
+        explanation=f"Scan manuel du pipeline lancé pour {len(documents)} document(s)."
+    )
+    db.add(audit)
+    db.commit()
+    
+    return {"status": "success", "message": f"Scan du pipeline démarré pour {len(documents)} document(s)."}

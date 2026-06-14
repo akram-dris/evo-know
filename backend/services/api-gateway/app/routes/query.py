@@ -5,18 +5,16 @@ from shared.database.vector_store import VectorStore
 from shared.embeddings.encoder import KnowledgeEncoder
 from shared.database.postgres import get_db, KnowledgeChunk, Document
 from sqlalchemy.orm import Session
-import ollama # Import ollama
+import httpx
 import os
 
 router = APIRouter(prefix="/api/v1/query", tags=["Query"])
 encoder = KnowledgeEncoder()
 vector_store = VectorStore()
 
-# Configure Ollama client
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
-
-client = ollama.Client(base_url=OLLAMA_HOST, timeout=300.0)
+# Configure GitHub Models client
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_MODEL = os.getenv("GITHUB_MODEL", "gpt-4o-mini")
 
 def build_rag_prompt(question: str, chunks: list[dict]) -> str:
     """Builds a RAG prompt from the user's question and retrieved knowledge chunks."""
@@ -78,18 +76,33 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
             "confidence": 0.0
         }
 
-    # 3. Generate contextual answer via Ollama
+    # 3. Generate contextual answer via GitHub Models API
     rag_prompt = build_rag_prompt(request.question, retrieved_chunks)
     try:
-        response = client.generate(
-            model=OLLAMA_MODEL,
-            prompt=rag_prompt,
-            options={'temperature': 0.2}
-        )
-        answer = response['response']
+        headers = {
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messages": [
+                { "role": "system", "content": "You are a helpful assistant." },
+                { "role": "user", "content": rag_prompt }
+            ],
+            "model": GITHUB_MODEL,
+            "temperature": 0.2
+        }
+        async with httpx.AsyncClient() as httpx_client:
+            response = await httpx_client.post(
+                "https://models.github.ai/inference/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60.0
+            )
+            response.raise_for_status()
+            answer = response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        print(f"Error calling Ollama API: {e}")
-        answer = "I am currently unable to generate an answer using Ollama. Please try again later."
+        print(f"Error calling GitHub Models API: {e}")
+        answer = "I am currently unable to generate an answer. Please try again later."
 
     # 4. Return formatted JSON response with citations and confidence
     confidence = compute_confidence_score(retrieved_chunks)

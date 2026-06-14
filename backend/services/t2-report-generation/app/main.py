@@ -7,13 +7,11 @@ from sqlalchemy.orm import Session
 from shared.kafka.consumer import KafkaConsumerBase
 from shared.kafka.producer import KafkaProducerWrapper
 from shared.database.postgres import SessionLocal, Document, UpdateReport, AuditLog
-import ollama # Import ollama
+import httpx
 
-# Configure Ollama client
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
-
-client = ollama.Client(base_url=OLLAMA_HOST, timeout=300.0)
+# Configure GitHub Models client
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_MODEL = os.getenv("GITHUB_MODEL", "gpt-4o-mini")
 
 class T2ReportConsumer(KafkaConsumerBase):
     def __init__(self):
@@ -23,27 +21,42 @@ class T2ReportConsumer(KafkaConsumerBase):
         )
         self.producer = KafkaProducerWrapper()
 
-def call_ollama_api(prompt: str) -> str:
-    """Helper to call Ollama API with error handling and fallback."""
+def call_github_model_api(prompt: str) -> str:
+    """Helper to call GitHub Models API with error handling and fallback."""
     try:
-        response = client.generate(
-            model=OLLAMA_MODEL,
-            prompt=prompt,
-            options={'temperature': 0.2}
-        )
-        return response['response']
+        headers = {
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "messages": [
+                { "role": "system", "content": "You are a helpful assistant." },
+                { "role": "user", "content": prompt }
+            ],
+            "model": GITHUB_MODEL,
+            "temperature": 0.2
+        }
+        with httpx.Client() as httpx_client:
+            response = httpx_client.post(
+                "https://models.github.ai/inference/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60.0
+            )
+            response.raise_for_status()
+            return response.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        print(f"⚠️ Ollama API execution failed: {e}. Falling back to rule-based generation.")
+        print(f"⚠️ GitHub Models API execution failed: {e}. Falling back to rule-based generation.")
     
     return generate_fallback_report(prompt)
 
 def generate_fallback_report(prompt: str) -> str:
-    """Generates a structured mock French report when Ollama is unavailable or fails."""
+    """Generates a structured mock French report when GitHub Models API is unavailable or fails."""
     return f"""# 📊 Rapport d'activité EvoKnow (Génération locale)
 
 *Date de génération : {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
 
-> **Avis** : Ce rapport a été généré via le système de repli local en raison de l'absence ou de l'échec de la connexion à Ollama.
+> **Avis** : Ce rapport a été généré via le système de repli local en raison de l'absence ou de l'échec de la connexion à l'API GitHub Models.
 
 ## 📝 Résumé de l'analyse
 Le pipeline EvoKnow a traité les événements du cycle de vie des connaissances.
@@ -54,11 +67,11 @@ Le pipeline EvoKnow a traité les événements du cycle de vie des connaissances
 3. **Analyse de cohérence (T4)** : Détection automatique des contradictions conceptuelles.
 4. **Découverte de connaissances (T5)** : Extraction d'entités nommées et suggestion de nouvelles relations sémantiques.
 
-*Veuillez vous assurer que le service Ollama est en cours d'exécution et que le modèle `{OLLAMA_MODEL}` est disponible pour obtenir des analyses générées par l'IA.*
+*Veuillez vous assurer que l'accès à l'API GitHub Models et le modèle `{GITHUB_MODEL}` sont configurés correctement pour obtenir des analyses générées par l'IA.*
 """
 
 def generate_report(report_type: str, context_data: dict, db: Session) -> str:
-    """Builds prompt and calls Ollama to generate a tailored report in French."""
+    """Builds prompt and calls GitHub Models API to generate a tailored report in French."""
     prompt = f"""Vous êtes un assistant IA spécialisé en gestion des connaissances (Knowledge Management - KM) pour EvoKnow.
 Générez un rapport professionnel structuré en Markdown, rédigé EXCLUSIVEMENT en français.
 
@@ -76,7 +89,7 @@ Instructions de structure :
 
 Rédigez un rapport complet, sans raccourcis de type "insérez ici". Soyez précis et professionnel.
 """
-    return call_ollama_api(prompt)
+    return call_github_model_api(prompt)
 
 def handle_message(topic, payload):
     print(f"📊 [T2-Report] Received event from {topic}: {payload}")

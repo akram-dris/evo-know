@@ -122,3 +122,26 @@ async def get_discovered_relations(db: Session = Depends(get_db)):
         }
         for r in relations
     ]
+
+@router.post("/discovery/approve/{rel_id}")
+async def approve_discovered_relation(rel_id: str, db: Session = Depends(get_db)):
+    """
+    Approve a discovered relation and create it in Neo4j (mock logic + PostgreSQL audit trail logs).
+    """
+    relation = db.query(DiscoveredRelation).filter(DiscoveredRelation.id == rel_id).first()
+    if not relation:
+        raise HTTPException(status_code=404, detail="Relation not found")
+        
+    # Log to audit trail
+    audit = AuditLog(
+        action="relation_approved",
+        service="api-gateway",
+        details={"rel_id": rel_id, "entity_a": relation.entity_a, "entity_b": relation.entity_b, "relation_type": relation.relation_type},
+        explanation=f"La relation découverte [{relation.entity_a}] --({relation.relation_type})--> [{relation.entity_b}] a été approuvée et insérée dans le graphe de connaissances Neo4j."
+    )
+    db.add(audit)
+    
+    # Delete from discovered relations list (since it is now integrated into Neo4j)
+    db.delete(relation)
+    db.commit()
+    return {"status": "success", "message": "Relation approved and created in Neo4j."}

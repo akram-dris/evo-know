@@ -190,10 +190,10 @@ def init_postgres():
                     
                     # 1. Seed Documents
                     docs = [
-                        ("OSS-4G-Procedure-v2", "pdf", "/data/raw/OSS-4G-Procedure-v2.pdf", "IT Support", "Akram Dris", "active"),
-                        ("Backup-Policy-2025", "docx", "/data/raw/Backup-Policy-2025.docx", "Infrastructure", "Asma", "active"),
-                        ("Security-Protocol-v1", "txt", "/data/raw/Security-Protocol-v1.txt", "Security", "TestUser", "active"),
-                        ("Cloud-Architecture-Specs", "pdf", "/data/raw/Cloud-Architecture-Specs.pdf", "R&D", "Admin", "active")
+                        ("OSS-4G-Procedure-v2", "pdf", "/data/raw/OSS-4G-Procedure-v2.pdf", "Support IT", "admin", "active"),
+                        ("Backup-Policy-2025", "docx", "/data/raw/Backup-Policy-2025.docx", "Infrastructure", "expert", "active"),
+                        ("Security-Protocol-v1", "txt", "/data/raw/Security-Protocol-v1.txt", "Sécurité", "reader", "active"),
+                        ("Cloud-Architecture-Specs", "pdf", "/data/raw/Cloud-Architecture-Specs.pdf", "R&D", "admin", "active")
                     ]
                     doc_ids = []
                     for title, src_type, src_path, dept, uploaded_by, status in docs:
@@ -225,6 +225,29 @@ def init_postgres():
                             (doc_id, idx, content, len(content.split()))
                         )
                         chunk_ids.append(cur.fetchone()[0])
+
+                    # 2.5 Seed FAISS Vector Store
+                    try:
+                        print("🤖 Seeding FAISS vector store...")
+                        script_dir = os.path.dirname(os.path.abspath(__file__))
+                        backend_dir = os.path.abspath(os.path.join(script_dir, '..'))
+                        if backend_dir not in sys.path:
+                            sys.path.append(backend_dir)
+                            
+                        from shared.database.vector_store import VectorStore
+                        from shared.embeddings.encoder import KnowledgeEncoder
+                        import numpy as np
+
+                        encoder = KnowledgeEncoder()
+                        vector_store = VectorStore()
+                        
+                        # Encode all chunks
+                        chunk_texts = [c[2] for c in chunks]
+                        embeddings = encoder.encode(chunk_texts)
+                        vector_store.add(embeddings, [str(cid) for cid in chunk_ids])
+                        print("✅ FAISS vector store seeded with 4 chunks.")
+                    except Exception as ve:
+                        print(f"⚠️ Failed to seed FAISS vector store: {ve}")
 
                     # 3. Seed Obsolescence Scores
                     scores = [
