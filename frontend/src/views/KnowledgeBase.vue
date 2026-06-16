@@ -42,7 +42,7 @@ const loadingContent = ref(false);
 // Document Upload Modal State
 const showUploadModal = ref(false);
 const showCatalogModal = ref(false);
-const uploadFile = ref(null);
+const uploadFiles = ref([]);
 const uploadDept = ref('Telecom RNO');
 const uploading = ref(false);
 const uploadError = ref('');
@@ -61,7 +61,7 @@ const alertModal = ref({
 const fetchDocs = async () => {
   loading.value = true;
   try {
-    const res = await axios.get('/api/v1/query/documents');
+    const res = await axios.get(`/api/v1/query/documents?t=${Date.now()}`);
     docsList.value = res.data.map(d => ({
       id: d.id,
       title: d.title,
@@ -95,44 +95,51 @@ const openViewDoc = async (docId, title) => {
 };
 
 const openUploadModal = () => {
-  uploadFile.value = null;
+  uploadFiles.value = [];
   uploadError.value = '';
   showUploadModal.value = true;
 };
 
 const onFileChange = (e) => {
   if (e.target.files.length > 0) {
-    uploadFile.value = e.target.files[0];
+    uploadFiles.value = Array.from(e.target.files);
+  } else {
+    uploadFiles.value = [];
   }
 };
 
 const handleUpload = async () => {
-  if (!uploadFile.value) {
-    uploadError.value = "Veuillez sélectionner un fichier.";
+  if (uploadFiles.value.length === 0) {
+    uploadError.value = "Veuillez sélectionner au moins un fichier.";
     return;
   }
   
   uploading.value = true;
   uploadError.value = '';
   
-  const formData = new FormData();
-  formData.append('file', uploadFile.value);
-  formData.append('department', uploadDept.value);
-  formData.append('uploaded_by', user.value.username || 'admin');
-  
   try {
-    await axios.post('/api/v1/ingest', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
+    const uploadPromises = uploadFiles.value.map(file => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('department', uploadDept.value);
+      formData.append('uploaded_by', user.value.username || 'admin');
+      
+      return axios.post('/api/v1/ingest', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+      });
     });
+    
+    await Promise.all(uploadPromises);
     
     showUploadModal.value = false;
     await fetchDocs();
   } catch (err) {
     console.error("Upload error:", err);
-    uploadError.value = err.response?.data?.detail || "Erreur de téléversement.";
+    uploadError.value = err.response?.data?.detail || "Erreur lors du téléversement de certains fichiers.";
+    await fetchDocs();
   } finally {
     uploading.value = false;
   }
@@ -374,14 +381,23 @@ const filteredDocs = computed(() => {
 
         <form @submit.prevent="handleUpload" class="space-y-4">
           <div>
-            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Sélectionner le fichier</label>
+            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Sélectionner les fichiers</label>
             <input 
               type="file" 
               @change="onFileChange" 
               accept=".pdf,.docx,.txt"
+              multiple
               class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer" 
               required
             />
+            
+            <!-- List of selected files -->
+            <div v-if="uploadFiles.length > 0" class="mt-3 space-y-1.5 max-h-32 overflow-y-auto border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+              <div v-for="file in uploadFiles" :key="file.name" class="text-[10px] font-bold text-slate-650 flex items-center justify-between">
+                <span class="truncate max-w-[280px]">{{ file.name }}</span>
+                <span class="text-[8px] text-indigo-650 bg-indigo-50/50 px-1.5 py-0.5 rounded font-mono font-bold">{{ (file.size / 1024).toFixed(1) }} KB</span>
+              </div>
+            </div>
           </div>
 
           <div>
