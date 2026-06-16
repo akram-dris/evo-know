@@ -73,6 +73,7 @@ services:
     env_file: .env
     volumes:
       - ./backend:/app/backend
+      - faiss_data:/data
 
   t1-prediction:
     build:
@@ -173,3 +174,4 @@ services:
 volumes:
   postgres_data:
   neo4j_data:
+  faiss_data:

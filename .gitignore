@@ -62,3 +62,4 @@ tree.txt
 *.njsproj
 *.sln
 *.sw?
+*.deb
