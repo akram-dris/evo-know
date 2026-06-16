@@ -27,6 +27,7 @@ const uploadDept = ref('Telecom RNO');
 const uploading = ref(false);
 const uploadError = ref('');
 const uploadDepartments = ['Support IT', 'Infrastructure', 'Sécurité', 'R&D', 'Telecom RNO'];
+const currentUploadingIndex = ref(0);
 
 const confirmModal = ref({
   show: false,
@@ -63,23 +64,25 @@ const handleUpload = async () => {
   }
   uploading.value = true;
   uploadError.value = '';
+  currentUploadingIndex.value = 0;
   
   try {
-    const uploadPromises = uploadFiles.value.map(file => {
+    for (let i = 0; i < uploadFiles.value.length; i++) {
+      currentUploadingIndex.value = i + 1;
+      const file = uploadFiles.value[i];
       const formData = new FormData();
       formData.append('file', file);
       formData.append('department', uploadDept.value);
       formData.append('uploaded_by', username);
       
-      return axios.post('/api/v1/ingest', formData, {
+      await axios.post('/api/v1/ingest', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
-    });
+    }
     
-    await Promise.all(uploadPromises);
     showUploadModal.value = false;
     await fetchPredictions();
   } catch (err) {
@@ -296,7 +299,7 @@ onMounted(() => {
             Annuler
           </button>
           <button type="submit" :disabled="uploading" class="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md shadow-indigo-600/10 transition cursor-pointer border-none">
-            {{ uploading ? 'Ingestion...' : 'Téléverser' }}
+            {{ uploading ? `Ingestion (${currentUploadingIndex}/${uploadFiles.length})...` : 'Téléverser' }}
           </button>
         </div>
       </form>
