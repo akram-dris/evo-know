@@ -15,7 +15,7 @@ const formatDate = (dateString) => {
 const fetchAuditLogs = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/v1/audit`);
+    const response = await axios.get(`/api/v1/audit`);
     auditLogs.value = response.data;
   } catch (error) {
     console.error("Error fetching audit logs:", error);

@@ -16,7 +16,6 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 
 // Configure axios base URL
-axios.defaults.baseURL = import.meta.env.VITE_API_URL
 
 const usersList = ref([])
 const loading = ref(true)

@@ -6,8 +6,8 @@ import router from './router'
 import App from './App.vue'
 import axios from 'axios'
 
-// Set Axios base URL globally
-axios.defaults.baseURL = import.meta.env.VITE_API_URL;
+// Axios base URL handled via nginx proxy (relative paths)
+
 
 // Add request interceptor to attach JWT token
 axios.interceptors.request.use((config) => {

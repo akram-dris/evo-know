@@ -23,7 +23,6 @@ import AlertCard from './components/widgets/AlertCard.vue'
 
 import Toast from 'primevue/toast'
 
-axios.defaults.baseURL = import.meta.env.VITE_API_URL
 
 const route = useRoute()
 const router = useRouter()
@@ -97,7 +96,7 @@ onMounted(() => {
   role.value = localStorage.getItem('role') || ''
 
   // Establish SSE connection for alerts
-  eventSource = new EventSource(`${import.meta.env.VITE_API_URL}/api/v1/alerts/stream`);
+  eventSource = new EventSource(`/api/v1/alerts/stream`);
   
   eventSource.onmessage = (event) => {
     const newAlert = JSON.parse(event.data);

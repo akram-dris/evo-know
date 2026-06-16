@@ -7,7 +7,6 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 
 // Configure axios base URL from environment variable
-axios.defaults.baseURL = import.meta.env.VITE_API_URL
 
 const router = useRouter()
 const username = ref('')
