@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash   VARCHAR(300) NOT NULL,
     email           VARCHAR(255),
     role            VARCHAR(50) NOT NULL,
+    status          VARCHAR(50) DEFAULT 'approved',
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -167,6 +168,9 @@ def init_postgres():
                 print("⚡ Executing PostgreSQL schema creation...")
                 cur.execute(SQL_SCHEMA)
                 
+                # Dynamic migration to add status column if it doesn't exist on pre-existing table
+                cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'approved';")
+                
                 print("🌱 Seeding default users (Admin, Expert, Reader)...")
                 users_data = [
                     ("admin", get_password_hash("admin_pass_2026"), "admin@evoknow.com", "Admin"),
@@ -183,140 +187,8 @@ def init_postgres():
                         (username, pwd_hash, email, role)
                     )
 
-                # Check if data already exists to prevent duplicate seeding
-                cur.execute("SELECT COUNT(*) FROM documents;")
-                if cur.fetchone()[0] == 0:
-                    print("🌱 Seeding demonstration data (Documents, Chunks, Scores, Contradictions, Relations)...")
-                    
-                    # 1. Seed Documents
-                    docs = [
-                        ("OSS-4G-Procedure-v2", "pdf", "/data/raw/OSS-4G-Procedure-v2.pdf", "Support IT", "admin", "active"),
-                        ("Backup-Policy-2025", "docx", "/data/raw/Backup-Policy-2025.docx", "Infrastructure", "expert", "active"),
-                        ("Security-Protocol-v1", "txt", "/data/raw/Security-Protocol-v1.txt", "Sécurité", "reader", "active"),
-                        ("Cloud-Architecture-Specs", "pdf", "/data/raw/Cloud-Architecture-Specs.pdf", "R&D", "admin", "active")
-                    ]
-                    doc_ids = []
-                    for title, src_type, src_path, dept, uploaded_by, status in docs:
-                        cur.execute(
-                            """
-                            INSERT INTO documents (title, source_type, source_path, department, uploaded_by, status)
-                            VALUES (%s, %s, %s, %s, %s, %s)
-                            RETURNING id;
-                            """,
-                            (title, src_type, src_path, dept, uploaded_by, status)
-                        )
-                        doc_ids.append(cur.fetchone()[0])
-
-                    # 2. Seed Knowledge Chunks
-                    chunks = [
-                        (doc_ids[0], 0, "Cette procédure décrit le déploiement du réseau d'accès radio 4G LTE. Le processus nécessite l'arrêt périodique des émetteurs-récepteurs toutes les 24 heures pour effectuer l'étalonnage thermique."),
-                        (doc_ids[1], 0, "Politique de sauvegarde de l'infrastructure: Sauvegarde incrémentielle quotidienne programmée chaque nuit à 02:00 du matin. Les données sont répliquées vers le serveur secondaire."),
-                        (doc_ids[2], 0, "Protocole de sécurité général: Toutes les sauvegardes de serveurs de production doivent s'exécuter strictement à 04:00 du matin pour éviter les pics de charge réseau et les conflits d'accès."),
-                        (doc_ids[3], 0, "Spécifications de l'architecture cloud native: Utilisation de Kubernetes pour l'orchestration des conteneurs Docker, avec API Gateway FastAPI et bus d'événements Kafka.")
-                    ]
-                    chunk_ids = []
-                    for doc_id, idx, content in chunks:
-                        cur.execute(
-                            """
-                            INSERT INTO knowledge_chunks (document_id, chunk_index, content, token_count)
-                            VALUES (%s, %s, %s, %s)
-                            RETURNING id;
-                            """,
-                            (doc_id, idx, content, len(content.split()))
-                        )
-                        chunk_ids.append(cur.fetchone()[0])
-
-                    # 2.5 Seed FAISS Vector Store
-                    try:
-                        print("🤖 Seeding FAISS vector store...")
-                        script_dir = os.path.dirname(os.path.abspath(__file__))
-                        backend_dir = os.path.abspath(os.path.join(script_dir, '..'))
-                        if backend_dir not in sys.path:
-                            sys.path.append(backend_dir)
-                            
-                        from shared.database.vector_store import VectorStore
-                        from shared.embeddings.encoder import KnowledgeEncoder
-                        import numpy as np
-
-                        encoder = KnowledgeEncoder()
-                        vector_store = VectorStore()
-                        
-                        # Encode all chunks
-                        chunk_texts = [c[2] for c in chunks]
-                        embeddings = encoder.encode(chunk_texts)
-                        vector_store.add(embeddings, [str(cid) for cid in chunk_ids])
-                        print("✅ FAISS vector store seeded with 4 chunks.")
-                    except Exception as ve:
-                        print(f"⚠️ Failed to seed FAISS vector store: {ve}")
-
-                    # 3. Seed Obsolescence Scores
-                    scores = [
-                        (doc_ids[0], 0.85, '{"age_factor": 0.9, "access_decline": 0.8}'),
-                        (doc_ids[1], 0.32, '{"age_factor": 0.2, "access_decline": 0.4}'),
-                        (doc_ids[2], 0.72, '{"age_factor": 0.8, "access_decline": 0.6}'),
-                        (doc_ids[3], 0.15, '{"age_factor": 0.1, "access_decline": 0.2}')
-                    ]
-                    for doc_id, score, factors_json in scores:
-                        cur.execute(
-                            """
-                            INSERT INTO obsolescence_scores (document_id, score, model_version, factors)
-                            VALUES (%s, %s, 'Ensemble-LSTM-Prophet-v1', %s);
-                            """,
-                            (doc_id, score, factors_json)
-                        )
-
-                    # 4. Seed Consistency Issues (T4 Contradictions)
-                    # Contradiction between Backup-Policy-2025 (Daily at 2AM) and Security-Protocol-v1 (Daily at 4AM)
-                    cur.execute(
-                        """
-                        INSERT INTO consistency_issues (chunk_a_id, chunk_b_id, issue_type, confidence, description, resolved)
-                        VALUES (%s, %s, 'Contradiction', 0.88, 'Conflit de planification de sauvegarde détecté : Daily at 02:00 vs Daily at 04:00.', FALSE);
-                        """,
-                        (chunk_ids[1], chunk_ids[2])
-                    )
-
-                    # 5. Seed Discovered Relations (T5 Relations)
-                    relations = [
-                        ("Kubernetes", "Docker", "DEPENDS_ON", 0.92, "NER+Apriori"),
-                        ("FastAPI", "Uvicorn", "RUNS_ON", 0.98, "NER+Apriori"),
-                        ("Kafka", "ZooKeeper", "DEPENDS_ON", 0.95, "NER+Apriori")
-                    ]
-                    for ent_a, ent_b, rel_type, conf, method in relations:
-                        cur.execute(
-                            """
-                            INSERT INTO discovered_relations (entity_a, entity_b, relation_type, confidence, method)
-                            VALUES (%s, %s, %s, %s, %s);
-                            """,
-                            (ent_a, ent_b, rel_type, conf, method)
-                        )
-
-                    # 6. Seed Fusion Events (T3 Merges)
-                    cur.execute(
-                        """
-                        INSERT INTO fusion_events (source_chunk_ids, merged_chunk_id, similarity_score, method)
-                        VALUES (%s::uuid[], %s, 0.91, 'DBSCAN-LLM');
-                        """,
-                        ([chunk_ids[0], chunk_ids[1]], chunk_ids[3])
-                    )
-
-                    # 7. Seed Audit Logs (XAI explanations)
-                    audit_logs = [
-                        ("document_ingestion_orchestrated", "orchestrator", '{"title": "Cloud-Architecture-Specs"}', "Nouveau document 'Cloud-Architecture-Specs' ingéré pour 'R&D'. L'orchestrateur déclenche les processus d'extraction et de calcul."),
-                        ("prediction_scored_orchestrated", "orchestrator", '{"score": 0.85}', "Score d'obsolescence (T1) calculé pour le document OSS-4G-Procedure-v2: 0.85. Alerte d'obsolescence élevée transmise au tableau de bord."),
-                        ("consistency_checked_orchestrated", "orchestrator", '{"conflicts_found_count": 1}', "Étape Vérification de Cohérence (T4) terminée. 1 contradiction textuelle identifiée entre Backup-Policy-2025 et Security-Protocol-v1."),
-                        ("fusion_orchestrated", "orchestrator", '{"merged_chunk_id": "'+str(chunk_ids[3])+'"}', "Étape Fusion Sémantique (T3) terminée. L'orchestrateur a fusionné 2 fragments de connaissances redondants dans R&D."),
-                        ("discovery_orchestrated", "orchestrator", '{"new_relations_count": 3}', "Nouvelles connaissances découvertes (T5). 3 relations d'association extraites via Apriori et NER.")
-                    ]
-                    for action, service, details, explanation in audit_logs:
-                        cur.execute(
-                            """
-                            INSERT INTO audit_log (action, service, details, explanation)
-                            VALUES (%s, %s, %s, %s);
-                            """,
-                            (action, service, details, explanation)
-                        )
             conn.close()
-            print("✅ PostgreSQL tables and indexes initialized & seeded successfully.")
+            print("✅ PostgreSQL tables, indexes, and default users (Admin, Expert, Reader) initialized successfully.")
             return
         except Exception as e:
             print(f"⚠️ PostgreSQL connection attempt {attempt} failed: {e}")

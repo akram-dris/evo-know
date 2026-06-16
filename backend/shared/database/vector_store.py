@@ -53,6 +53,12 @@ class VectorStore:
         if os.path.exists(index_file):
             self._last_loaded_time = os.path.getmtime(index_file)
 
+    def reset(self):
+        """Resets the index and mapping to an empty state."""
+        self.index = faiss.IndexFlatIP(self.dimension)
+        self.id_map = {}
+        self.save()
+
     def _load_if_exists(self):
         """Loads existing FAISS index and ID mapping from disk if available."""
         index_file = f"{self.index_path}.index"

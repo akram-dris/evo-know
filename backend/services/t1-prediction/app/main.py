@@ -20,7 +20,7 @@ except ImportError:
 
 class T1PredictionConsumer(KafkaConsumerBase):
     def __init__(self):
-        super().__init__("t1-prediction-group", ["document.ingested", "access.logged"])
+        super().__init__("t1-prediction-group-v4", ["document.ingested", "access.logged"])
         self.producer = KafkaProducerWrapper()
         self.vector_store = VectorStore()
 
@@ -30,8 +30,11 @@ def calculate_obsolescence(doc_id: str, db: Session, vector_store: VectorStore) 
         return {}
 
     now = datetime.utcnow()
-    age_days = (now - doc.uploaded_at).days
-    days_since_update = (now - doc.last_updated).days
+    uploaded_at = doc.uploaded_at.replace(tzinfo=None) if doc.uploaded_at else now
+    last_updated = doc.last_updated.replace(tzinfo=None) if doc.last_updated else now
+    
+    age_days = (now - uploaded_at).days
+    days_since_update = (now - last_updated).days
     
     age_factor = min(1.0, max(0.0, age_days / 365.0))
     update_factor = min(1.0, max(0.0, days_since_update / 180.0))

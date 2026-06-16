@@ -12,8 +12,8 @@ RUN npm run build
 FROM nginx:stable-alpine AS production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 
-# Replace port 80 with 5173 in nginx default configuration
-RUN sed -i 's/listen\(.*\)80;/listen 5173;/g' /etc/nginx/conf.d/default.conf
+# Copy custom nginx configuration for SPA routing support
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 5173
 CMD ["nginx", "-g", "daemon off;"]

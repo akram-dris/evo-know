@@ -1,21 +1,12 @@
 <script setup>
 import { ref } from 'vue';
-import { Sliders, Database, Cpu, Save, ShieldAlert } from 'lucide-vue-next';
+import { Sliders, Database, Save, ShieldAlert } from 'lucide-vue-next';
 import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
 
 const neo4jThreshold = ref(0.7);
 const aprioriSupport = ref(0.3);
 const aprioriConfidence = ref(0.5);
-const llmTemperature = ref(0.2);
-const activeLlm = ref('llama3');
 const enableAutoResolve = ref(false);
-
-const llmOptions = ref([
-  { label: 'Ollama - Llama 3 (8B)', value: 'llama3' },
-  { label: 'Ollama - Mistral (7B)', value: 'mistral' },
-  { label: 'Ollama - CodeLlama (13B)', value: 'codellama' }
-]);
 
 const saving = ref(false);
 const saveSuccess = ref(false);
@@ -103,38 +94,6 @@ const saveSettings = () => {
               <p class="text-[10px] text-slate-400 mt-1 font-semibold">Résout les contradictions mineures automatiquement via LLM</p>
             </div>
             <input type="checkbox" v-model="enableAutoResolve" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" />
-          </div>
-        </div>
-      </div>
-
-      <!-- LLM Pipeline Config -->
-      <div class="bg-white border border-slate-200/50 rounded-3xl p-6 shadow-sm space-y-5 md:col-span-2">
-        <div class="flex items-center space-x-2.5 pb-2.5 border-b border-slate-100">
-          <Cpu class="h-5 w-5 text-indigo-600" />
-          <h3 class="font-bold text-slate-800 text-sm">Pipeline d'Inférence LLM</h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-4">
-            <div>
-              <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 font-mono">Moteur de génération local</label>
-              <Dropdown 
-                v-model="activeLlm" 
-                :options="llmOptions" 
-                optionLabel="label" 
-                optionValue="value" 
-                class="w-full text-xs font-mono"
-              />
-            </div>
-          </div>
-          <div class="space-y-4">
-            <div>
-              <div class="flex justify-between items-center mb-2">
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">Température Inférence</label>
-                <span class="text-xs font-bold text-indigo-600 font-mono">{{ llmTemperature }}</span>
-              </div>
-              <input type="range" min="0.0" max="1.0" step="0.1" v-model="llmTemperature" class="w-full accent-indigo-600 cursor-pointer" />
-            </div>
           </div>
         </div>
       </div>

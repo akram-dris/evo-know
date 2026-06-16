@@ -1,6 +1,6 @@
 import os
 from sse_starlette.sse import EventSourceResponse
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 import json
 import asyncio
 from confluent_kafka import Consumer, KafkaException, KafkaError
@@ -47,6 +47,10 @@ async def alerts_stream(request: Request):
             if msg.error():
                 if msg.error().code() == KafkaError._PARTITION_EOF:
                     # End of partition event - not an error
+                    continue
+                elif msg.error().code() == 3 or msg.error().code() == KafkaError.UNKNOWN_TOPIC_OR_PART:
+                    # Topic not created yet, wait and continue
+                    await asyncio.sleep(1.0)
                     continue
                 else:
                     print(f"Kafka consumer error: {msg.error()}")

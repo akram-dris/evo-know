@@ -52,6 +52,11 @@ const routes = [
     path: '/settings',
     name: 'Settings',
     component: () => import('../views/Settings.vue')
+  },
+  {
+    path: '/users',
+    name: 'Users',
+    component: () => import('../views/Users.vue')
   }
 ]
 
@@ -62,10 +67,24 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
+  const role = localStorage.getItem('role')
+  
   if (to.name !== 'Login' && !token) {
     next({ name: 'Login' })
   } else if (to.name === 'Login' && token) {
-    next({ name: 'Dashboard' })
+    if (role === 'Reader') {
+      next({ name: 'KnowledgeBase' })
+    } else {
+      next({ name: 'Dashboard' })
+    }
+  } else if (token && role === 'Reader' && to.name !== 'KnowledgeBase') {
+    next({ name: 'KnowledgeBase' })
+  } else if (token && role !== 'Admin' && to.name === 'Users') {
+    if (role === 'Reader') {
+      next({ name: 'KnowledgeBase' })
+    } else {
+      next({ name: 'Dashboard' })
+    }
   } else {
     next()
   }

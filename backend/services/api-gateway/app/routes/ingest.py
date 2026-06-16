@@ -2,7 +2,8 @@ import os
 import shutil
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.orm import Session
-from shared.database.postgres import get_db, Document, KnowledgeChunk
+from shared.database.postgres import get_db, Document, KnowledgeChunk, User
+from app.auth import require_role, get_current_user
 from shared.parsers.document_parser import DocumentParser
 from shared.chunking.splitter import KnowledgeChunkSplitter
 from shared.embeddings.encoder import KnowledgeEncoder
@@ -10,7 +11,7 @@ from shared.database.vector_store import VectorStore
 from shared.kafka.producer import KafkaProducerWrapper
 from shared.database.neo4j_client import Neo4jClient
 
-router = APIRouter(prefix="/ingest", tags=["Ingestion"])
+router = APIRouter(prefix="/api/v1/ingest", tags=["Ingestion"])
 parser = DocumentParser()
 splitter = KnowledgeChunkSplitter()
 encoder = KnowledgeEncoder()
@@ -112,4 +113,71 @@ async def ingest_document(
         "document_id": str(doc.id),
         "chunks_created": len(chunks),
         "message": "Document successfully ingested, embedded, and indexed."
+    }
+
+def rebuild_faiss_index(db: Session):
+    import numpy as np
+    vector_store.reset()
+    chunks = db.query(KnowledgeChunk).join(Document).filter(Document.status == "active").all()
+    if not chunks:
+        return
+        
+    embeddings = []
+    chunk_ids = []
+    for c in chunks:
+        if c.embedding:
+            emb = np.frombuffer(c.embedding, dtype=np.float32)
+            embeddings.append(emb)
+            chunk_ids.append(str(c.id))
+            
+    if embeddings:
+        embeddings_np = np.vstack(embeddings)
+        vector_store.add(embeddings_np, chunk_ids)
+
+@router.delete("/documents/{doc_id}")
+async def delete_document(
+    doc_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(["Admin", "Expert"]))
+):
+    """
+    Delete a document and all its chunks from PostgreSQL, Neo4j, raw files, and FAISS.
+    """
+    from uuid import UUID
+    try:
+        doc_uuid = UUID(doc_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+        
+    # Delete from Neo4j
+    try:
+        cypher_query = "MATCH (d:Document {id: $doc_id}) DETACH DELETE d"
+        neo4j_client.run_query(cypher_query, {"doc_id": str(doc.id)})
+    except Exception as ne:
+        print(f"Warning: Failed to delete Neo4j node for doc {doc_id}: {ne}")
+        
+    # Delete raw file from disk
+    if doc.source_path and os.path.exists(doc.source_path):
+        try:
+            os.remove(doc.source_path)
+        except Exception as fe:
+            print(f"Warning: Failed to remove file from disk: {fe}")
+            
+    # Delete from Postgres (cascading automatically deletes knowledge_chunks and scores)
+    db.delete(doc)
+    db.commit()
+    
+    # Rebuild FAISS index
+    try:
+        rebuild_faiss_index(db)
+    except Exception as fe:
+        print(f"Warning: Failed to rebuild FAISS index: {fe}")
+        
+    return {
+        "status": "success",
+        "message": f"Document '{doc.title}' et toutes les données associées ont été supprimés."
     }

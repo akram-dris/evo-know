@@ -29,7 +29,7 @@ if GEMINI_API_KEY:
 
 class T3FusionConsumer(KafkaConsumerBase):
     def __init__(self):
-        super().__init__("t3-fusion-group", ["document.ingested"])
+        super().__init__("t3-fusion-group-v4", ["document.ingested"])
         self.producer = KafkaProducerWrapper()
 
 def call_merger_api(chunks_text: list[str]) -> str:

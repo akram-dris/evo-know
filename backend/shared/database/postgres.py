@@ -122,6 +122,7 @@ class User(Base):
     password_hash = Column(String(300), nullable=False)
     email = Column(String(255))
     role = Column(String(50), nullable=False)
+    status = Column(String(50), default="approved", nullable=False, server_default="approved")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 def get_db():

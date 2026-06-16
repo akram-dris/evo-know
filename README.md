@@ -10,232 +10,180 @@
 
 ---
 
-## ⚡ 1. Quick Start & Execution Guide (Straight to the Point)
+## ⚡ 1. Step-by-Step Installation & Execution Guide
 
-This section provides the exact, copy-paste commands required to launch the complete 14-container microservices ecosystem (now featuring 100% local AI via Ollama), initialize the dual databases, and execute live ingestion and querying tests.
+This guide details the complete step-by-step commands to clone, run, and test the 14-container microservices ecosystem on **Linux**, **macOS**, and **Windows**.
 
-### 🛠️ Step 1: Environment Preparation
-Clone the repository and configure your environment variables. No external API keys are required for core functionality!
+> [!NOTE]
+> The database initializes **empty of documents** so that you can upload your files directly using the platform's user interface. Only the three core user accounts (Admin, Expert, Reader) are seeded.
 
+---
+
+### 📂 Step 1: Clone Repository & Create `.env`
+
+#### 🐧 On Linux / macOS / Git Bash:
 ```bash
+# 1. Clone the repository
 git clone https://github.com/akram-dris/evo-know.git
 cd evo-know
+
+# 2. Copy the environment variables template
 cp .env.example .env
 ```
-*(The default `.env` is pre-configured to use the local Ollama service for all LLM operations).*
 
-### 🐳 Step 2: Build & Launch Cloud-Native Infrastructure
-Leverage Docker BuildKit cache mounts to accelerate building all AI microservices, then spin up the entire cluster:
+#### 🪟 On Windows Command Prompt (CMD):
+```cmd
+:: 1. Clone the repository
+git clone https://github.com/akram-dris/evo-know.git
+cd evo-know
+
+:: 2. Copy the environment variables template
+copy .env.example .env
+```
+
+#### 🪟 On Windows PowerShell:
+```powershell
+# 1. Clone the repository
+git clone https://github.com/akram-dris/evo-know.git
+cd evo-know
+
+# 2. Copy the environment variables template
+Copy-Item .env.example .env
+```
+
+---
+
+### 🐳 Step 2: Build & Launch the Microservices Cluster
+
+Run the following commands in your terminal (same for all platforms):
 
 ```bash
-# 1. Build all services (uses BuildKit cache for sub-minute builds)
+# 1. Build the microservices containers (uses BuildKit for speed)
 docker compose build
 
-# 2. Start all 14 containers in detached mode
+# 2. Start all services in the background (detached mode)
 docker compose up -d
 ```
 
-Verify that all containers are healthy and running:
+Verify that all containers are running and healthy:
 ```bash
 docker compose ps
 ```
 
-### 🧠 Step 2.5: Initialize Local AI Model (Critical Step)
-EvoKnow now runs 100% locally using Ollama. Before using AI features (like RAG or Report Generation), you **must** download the language model into the running Ollama container:
+---
+
+### 🧠 Step 3: Initialize the Local AI Model (Ollama)
+
+EvoKnow runs 100% locally. You must pull the language model inside the Ollama container before utilizing any AI/RAG features:
 
 ```bash
 docker exec -it evo-know-ollama-1 ollama run llama3
 ```
-*(Wait for the download to complete and the "Send a message" prompt to appear, then type `/bye` to exit).*
-
-### 🐘 Step 3: Initialize Hybrid Databases (PostgreSQL & Neo4j)
-Execute the automated initialization script directly inside the API Gateway container. Since syntax differs across operating systems and shells, choose the command matching your terminal:
-
-**For Linux / macOS / Windows Git Bash:**
-```bash
-docker exec -i evo-know-api-gateway-1 python - < backend/scripts/init_databases.py
-```
-
-**For Windows PowerShell:**
-```powershell
-Get-Content .\backend\scripts\init_databases.py -Raw | docker exec -i evo-know-api-gateway-1 python -
-```
-
-**For Windows Command Prompt (CMD):**
-```cmd
-docker exec -i evo-know-api-gateway-1 python - < backend/scripts/init_databases.py
-```
-
-*Expected Output:* Confirmation messages indicating successful creation of PostgreSQL tables and Neo4j constraints.
+*(Wait for the download to complete. Once the model prompt is active, type `/bye` and press Enter to exit back to your terminal).*
 
 ---
 
-## 🔧 2. Post-Deployment Setup & Application Access Guide
+### 🐘 Step 4: Initialize PostgreSQL & Neo4j Databases
 
-After launching the Docker containers using either the default profile or the production profile (`docker-compose.prod.yml`), you must follow these steps to initialize the databases, download the AI models, and access the application.
+Initialize the database schemas, indexes, and Neo4j graph constraints by executing the initialization script inside the running API Gateway container:
 
-### 🐘 Step 2.1: Initialize & Seed Hybrid Databases (PostgreSQL & Neo4j)
-Run the database initialization script inside the `api-gateway` container. This creates all tables in PostgreSQL, sets constraints in Neo4j, and seeds the system with default user accounts and rich demonstration data (documents, obsolescence scores, semantic fusion events, contradictions, discovered relations, and audit logs).
-
-**For Production Mode:**
-```bash
-docker compose -f docker-compose.prod.yml exec api-gateway python backend/scripts/init_databases.py
-```
-
-**For Standard/Development Mode:**
+#### 🐧 On Linux / macOS / Git Bash:
 ```bash
 docker compose exec api-gateway python backend/scripts/init_databases.py
 ```
 
-### 🧠 Step 2.2: Download Local AI Models (Ollama)
-EvoKnow runs 100% locally. Before using AI features (like Report Generation and RAG queries), you must pull the `llama3` language model into the running Ollama container:
-
-**For Production Mode:**
-```bash
-docker compose -f docker-compose.prod.yml exec ollama ollama pull llama3
+#### 🪟 On Windows Command Prompt (CMD):
+```cmd
+docker compose exec api-gateway python backend/scripts/init_databases.py
 ```
 
-**For Standard/Development Mode:**
-```bash
-docker compose exec ollama ollama pull llama3
+#### 🪟 On Windows PowerShell:
+```powershell
+docker compose exec api-gateway python backend/scripts/init_databases.py
 ```
-*(Wait for the download to complete and print `success`).*
-
-### 🌐 Step 2.3: Accessing the Web Interface
-Once the services are active and the databases are seeded, you can open your browser and navigate to the application.
-
-*   **Production Deployment URL:** Open your browser and navigate to **`http://localhost`** (runs on port `80` managed by Nginx proxy).
-*   **Development Deployment URL:** If running in standard dev mode, go to **`http://localhost:5173`** (Vue.js frontend server).
-
-### 👤 Seeded User Accounts (Human Credentials)
-The system is pre-seeded with three default accounts representing different roles and job descriptions. You can log in using these credentials directly on the login page:
-
-| Username | Password | Email | Role | Core Permissions & Capabilities |
-| :--- | :--- | :--- | :--- | :--- |
-| `admin` | `admin_pass_2026` | `admin@evoknow.com` | **Admin** | Full system configuration, XAI audit control, prompt tuning, overriding AI decisions. |
-| `expert` | `expert_pass_2026` | `expert@evoknow.com` | **Expert** | Deduplication, conflict resolution, entity relation approval. |
-| `reader` | `reader_pass_2026` | `reader@evoknow.com` | **Reader** | Read-only access to dashboard, knowledge catalog, and RAG assistant. |
-
-### 🔌 API Documentation & Interoperability
-You can access the interactive FastAPI Swagger documentation to inspect, test, and authenticate API routes:
-*   **Swagger API Docs:** **`http://localhost/docs`** (or `http://localhost:8000/docs`)
 
 ---
 
-## 🎯 3. Live End-to-End Pipeline Validation
+### 🌐 Step 5: Access the Web Application & Log In
 
-Once the cluster is up and databases are initialized, verify the system's core capabilities using `curl` from your terminal. Choose the command matching your operating system and shell:
+Once all containers are running and databases are initialized, open your browser and navigate to the application:
+
+*   **Development Server URL:** **`http://localhost:5173`** (Vue.js Vite dev server)
+*   **Production Gateway URL:** **`http://localhost`** (Runs on port `80` served by Nginx)
+
+#### 👤 Default Seeded Accounts:
+Use these credentials on the login screen to access the application:
+
+| Username | Password | Role | Core Permissions & Capabilities |
+| :--- | :--- | :--- | :--- |
+| `admin` | `admin_pass_2026` | **Admin** | Full access to dashboards, XAI logs, settings, and account approval management. |
+| `expert` | `expert_pass_2026` | **Expert** | Access to all prediction dashboards, semantic fusion, and document upload/delete tools. |
+| `reader` | `reader_pass_2026` | **Reader** | Read-only access restricted exclusively to the full-width ChatGPT-style chat assistant. |
+
+---
+
+### 📤 Step 6: Ingest Your First Document
+
+1. Log in using `admin` or `expert` credentials.
+2. Navigate to **Base de connaissances** on the sidebar.
+3. Click the **Catalogue de Documents** button in the header.
+4. Click **+ Importer** in the top-right of the modal.
+5. Choose your document (`.txt`, `.pdf`, or `.docx`) and click **Importer**.
+6. The document is parsed, chunked, embedded, and added to the search index instantly!
+
+---
+
+## 🎯 2. Live REST API Validation Tests
+
+You can also test and interact with the backend API gateway directly using `curl` from your terminal:
 
 ### 🟢 Test 1: API Gateway Health Check
-Verify that the Gateway is operational and communicating with the databases:
+Verify the Gateway is operational and communicating with the databases:
 
-**For Linux / macOS / Windows Git Bash:**
 ```bash
 curl -i http://127.0.0.1:8000/health
 ```
+*Expected Response:* `{"status":"online","service":"api-gateway","database":"healthy"}`
 
-**For Windows PowerShell:**
-```powershell
-curl.exe -i http://127.0.0.1:8000/health
-```
-
-**For Windows Command Prompt (CMD):**
-```cmd
-curl -i http://127.0.0.1:8000/health
-```
-
-*Expected Output:* `{"status":"online","service":"api-gateway","database":"healthy"}`
-
-### 🟢 Test 2: Knowledge Ingestion & Vector Indexing
-Upload a sample knowledge document (`backend/sample_knowledge.txt`). The system will automatically chunk, embed, store in Postgres, index in FAISS, create Neo4j graph nodes, and publish a Kafka event:
-
-**For Linux / macOS / Windows Git Bash:**
+### 🟢 Test 2: Ingest a Document via REST
 ```bash
-curl -X POST "http://127.0.0.1:8000/ingest" \
+# Run this from the root of the project to ingest the sample text file
+curl -X POST "http://127.0.0.1:8000/api/v1/ingest" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@backend/sample_knowledge.txt" \
-  -F "department=AI Research" \
-  -F "uploaded_by=Akram Dris"
+  -F "department=Support IT" \
+  -F "uploaded_by=admin"
 ```
+*Expected Response:* `{"status":"success","document_id":"...","chunks_created":5,"message":"Document successfully ingested..."}`
 
-**For Windows PowerShell:**
-```powershell
-curl.exe -X POST "http://127.0.0.1:8000/ingest" `
-  -H "accept: application/json" `
-  -H "Content-Type: multipart/form-data" `
-  -F "file=@backend/sample_knowledge.txt" `
-  -F "department=AI Research" `
-  -F "uploaded_by=Akram Dris"
-```
+### 🟢 Test 3: Semantic Search & RAG Chat Query
+Query the ingested knowledge base in natural language (make sure you completed Step 3 first):
 
-**For Windows Command Prompt (CMD):**
-```cmd
-curl -X POST "http://127.0.0.1:8000/ingest" ^
-  -H "accept: application/json" ^
-  -H "Content-Type: multipart/form-data" ^
-  -F "file=@backend/sample_knowledge.txt" ^
-  -F "department=AI Research" ^
-  -F "uploaded_by=Akram Dris"
-```
-
-*Expected Output:* `{"status":"success","document_id":"...","chunks_created":5,"message":"Document successfully ingested..."}`
-
-### 🟢 Test 3: Semantic Search & Retrieval (RAG via Ollama)
-Query the ingested knowledge base in natural language. Ensure you completed Step 2.5 first!
-
-**For Linux / macOS / Windows Git Bash:**
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/v1/query" \
   -H "Content-Type: application/json" \
   -d '{"question": "What databases are used in the system?", "top_k": 2}'
 ```
-
-**For Windows PowerShell:**
-```powershell
-curl.exe -X POST "http://127.0.0.1:8000/api/v1/query" `
-  -H "Content-Type: application/json" `
-  -d '{"question": "What databases are used in the system?", "top_k": 2}'
-```
-
-**For Windows Command Prompt (CMD):**
-```cmd
-curl -X POST "http://127.0.0.1:8000/api/v1/query" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"question\": \"What databases are used in the system?\", \"top_k\": 2}"
-```
-
-*Expected Output:* An AI-generated answer using the local `llama3` model, citing the source document.
+*Expected Response:* An AI-generated answer using the local `llama3` model, referencing the source document.
 
 ---
 
-## 🏗️ 4. Cloud-Native Architecture & Monorepo Structure
+## 🏗️ 3. Cloud-Native Monorepo Structure
 
 ```
 evo-know/
 ├── docker-compose.yml              # Orchestrates 14 containers & network
 ├── .env                            # Environment variables & configuration
 ├── README.md                       # Main Quick Start & Execution Guide
-│
-├── docs/                           # Documentation & Reports (See docs/README.md)
-├── frontend/                       # Vue.js 3 + Tailwind CSS Application
+├── docs/                           # Documentation & Reports
+├── frontend/                       # Vue.js 3 + PrimeVue Web Application
 └── backend/                        # Backend Services & Shared Libraries
     ├── services/                   # 7 AI & Core Microservices
     ├── shared/                     # Shared Python Libraries
-    ├── scripts/                    # Database Seeding Scripts
-    └── monitoring/                 # Prometheus Metrics Setup
+    ├── scripts/                    # Database Initializer & Migration Scripts
+    └── monitoring/                 # Prometheus & Metrics Setup
 ```
-
-### 📬 Microservices Ecosystem Summary
-- **`frontend` (Port 5173):** Vue.js 3 + Tailwind CSS Web Application.
-- **`api-gateway` (Port 8000):** FastAPI REST entry point & RAG orchestrator.
-- **`ollama` (Port 11434):** Local LLM server running `llama3`.
-- **`t1-prediction`:** AI obsolescence & knowledge decay forecasting.
-- **`t2-report-generation`:** Local LLM (`llama3`) automated markdown report synthesis.
-- **`t3-knowledge-fusion`:** NLP deduplication & intelligent chunk merging.
-- **`t4-consistency-check`:** NLI DeBERTa contradiction & anomaly detection.
-- **`t5-knowledge-discovery`:** Association rule mining (Apriori/FP-Growth).
-- **`orchestrator`:** Automated background daemon & scheduler.
 
 ---
 **Open-Source Cloud-Native Knowledge Management Platform.**

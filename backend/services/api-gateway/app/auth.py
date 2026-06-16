@@ -27,3 +27,40 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
             detail="Invalid or expired authentication token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+from sqlalchemy.orm import Session
+from shared.database.postgres import get_db, User
+
+def get_current_user(
+    payload: dict = Depends(verify_token),
+    db: Session = Depends(get_db)
+) -> User:
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: missing subject"
+        )
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user not found"
+        )
+    if user.status != "approved":
+        status_fr = "en attente d'approbation" if user.status == "pending" else "rejeté"
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"L'accès à votre compte est {status_fr}."
+        )
+    return user
+
+def require_role(allowed_roles: list[str]):
+    def dependency(user: User = Depends(get_current_user)):
+        if user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Vous n'avez pas l'autorisation d'effectuer cette action."
+            )
+        return user
+    return dependency

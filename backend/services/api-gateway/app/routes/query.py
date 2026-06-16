@@ -19,18 +19,7 @@ GITHUB_MODEL = os.getenv("GITHUB_MODEL", "gpt-4o-mini")
 def build_rag_prompt(question: str, chunks: list[dict]) -> str:
     """Builds a RAG prompt from the user's question and retrieved knowledge chunks."""
     context = "\n---\n".join([c["content"] for c in chunks])
-    prompt = f"""
-    You are an intelligent assistant that answers questions based on the provided context only.
-    If the answer is not in the context, state "I cannot answer this question based on the provided information."
-    
-    Context:
-    {context}
-    
-    Question: {question}
-    
-    Answer:
-    """
-    return prompt
+    return f"Context:\n{context}\n\nQuestion: {question}"
 
 def compute_confidence_score(chunks: list[dict]) -> float:
     """Computes a simple confidence score based on the similarity of retrieved chunks."""
@@ -56,7 +45,7 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
     
     # 2. Retrieve raw source chunks from PostgreSQL
     retrieved_chunks = []
-    source_document_titles = set()
+    source_documents = {}  # maps doc_id to title to deduplicate
     for res in faiss_results:
         chunk = db.query(KnowledgeChunk).filter(KnowledgeChunk.id == res["id"]).first()
         if chunk:
@@ -67,7 +56,7 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
                     "document_title": doc.title,
                     "similarity_score": res["score"]
                 })
-                source_document_titles.add(doc.title)
+                source_documents[str(doc.id)] = doc.title
     
     if not retrieved_chunks:
         return {
@@ -83,9 +72,13 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
             "Authorization": f"Bearer {GITHUB_TOKEN}",
             "Content-Type": "application/json"
         }
+        system_prompt = (
+            "You are an intelligent assistant that answers questions based on the provided context only.\n"
+            "If the answer is not in the context, state \"I cannot answer this question based on the provided information.\""
+        )
         payload = {
             "messages": [
-                { "role": "system", "content": "You are a helpful assistant." },
+                { "role": "system", "content": system_prompt },
                 { "role": "user", "content": rag_prompt }
             ],
             "model": GITHUB_MODEL,
@@ -100,15 +93,70 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
             )
             response.raise_for_status()
             answer = response.json()["choices"][0]["message"]["content"]
+    except httpx.HTTPStatusError as e:
+        error_detail = e.response.text
+        try:
+            err_json = e.response.json()
+            if "error" in err_json and "message" in err_json["error"]:
+                error_detail = err_json["error"]["message"]
+        except Exception:
+            pass
+        print(f"HTTP status error calling GitHub Models API: {e.response.status_code} - {e.response.text}")
+        answer = f"LLM API Error ({e.response.status_code}): {error_detail}"
     except Exception as e:
         print(f"Error calling GitHub Models API: {e}")
-        answer = "I am currently unable to generate an answer. Please try again later."
+        answer = f"LLM Connection Error ({type(e).__name__}): {str(e)}"
 
     # 4. Return formatted JSON response with citations and confidence
     confidence = compute_confidence_score(retrieved_chunks)
     
     return {
         "answer": answer,
-        "sources": list(source_document_titles),
+        "sources": [{"id": doc_id, "title": title} for doc_id, title in source_documents.items()],
         "confidence": confidence
+    }
+
+@router.get("/documents")
+async def get_all_documents(db: Session = Depends(get_db)):
+    """
+    Get the list of all active documents in the database.
+    """
+    docs = db.query(Document).filter(Document.status == "active").order_by(Document.uploaded_at.desc()).all()
+    return [
+        {
+            "id": str(d.id),
+            "title": d.title,
+            "source_type": d.source_type,
+            "department": d.department,
+            "uploaded_at": d.uploaded_at.strftime("%Y-%m-%d") if d.uploaded_at else None,
+            "uploaded_by": d.uploaded_by,
+            "status": d.status
+        }
+        for d in docs
+    ]
+
+@router.get("/documents/{doc_id}/content")
+async def get_document_content(doc_id: str, db: Session = Depends(get_db)):
+    """
+    Retrieve and concatenate all text chunks for a given document.
+    """
+    from uuid import UUID
+    try:
+        doc_uuid = UUID(doc_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+        
+    doc = db.query(Document).filter(Document.id == doc_uuid).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+        
+    chunks = db.query(KnowledgeChunk).filter(KnowledgeChunk.document_id == doc_uuid).order_by(KnowledgeChunk.chunk_index).all()
+    content = "\n\n".join([c.content for c in chunks])
+    
+    return {
+        "title": doc.title,
+        "department": doc.department,
+        "uploaded_by": doc.uploaded_by,
+        "uploaded_at": doc.uploaded_at.strftime("%Y-%m-%d %H:%M") if doc.uploaded_at else None,
+        "content": content
     }

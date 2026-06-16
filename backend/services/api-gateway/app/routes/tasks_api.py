@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from pydantic import BaseModel
 
@@ -19,8 +20,18 @@ async def get_predictions(db: Session = Depends(get_db)):
     """
     Get obsolescence score forecasts (T1 results).
     """
+    # Get the latest predicted_at per document_id to avoid showing duplicate historical scores
+    subq = db.query(
+        ObsolescenceScore.document_id,
+        func.max(ObsolescenceScore.predicted_at).label("max_date")
+    ).group_by(ObsolescenceScore.document_id).subquery()
+
     scores = db.query(ObsolescenceScore, Document).join(
         Document, ObsolescenceScore.document_id == Document.id
+    ).join(
+        subq,
+        (ObsolescenceScore.document_id == subq.c.document_id) &
+        (ObsolescenceScore.predicted_at == subq.c.max_date)
     ).order_by(ObsolescenceScore.score.desc()).all()
     
     return [
