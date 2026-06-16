@@ -5,18 +5,16 @@ from shared.database.vector_store import VectorStore
 from shared.embeddings.encoder import KnowledgeEncoder
 from shared.database.postgres import get_db, KnowledgeChunk, Document
 from sqlalchemy.orm import Session
+import httpx
 import os
-import google.generativeai as genai
 
 router = APIRouter(prefix="/api/v1/query", tags=["Query"])
 encoder = KnowledgeEncoder()
 vector_store = VectorStore()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+# Configure GitHub Models client
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_MODEL = os.getenv("GITHUB_MODEL", "gpt-4o-mini")
 
 def build_rag_prompt(question: str, chunks: list[dict]) -> str:
     """Builds a RAG prompt from the user's question and retrieved knowledge chunks."""
@@ -67,25 +65,47 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
             "confidence": 0.0
         }
 
-    # 3. Generate contextual answer via Google Gemini API
+    # 3. Generate contextual answer via GitHub Models API
     rag_prompt = build_rag_prompt(request.question, retrieved_chunks)
     try:
-        if not GEMINI_API_KEY:
-            raise Exception("GEMINI_API_KEY is not configured in environment variables.")
-            
+        headers = {
+            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Content-Type": "application/json"
+        }
         system_prompt = (
             "You are an intelligent assistant that answers questions based on the provided context only.\n"
-            "If the answer is not in the context, state \"I cannot answer this question based on the provided information.\"\n\n"
+            "If the answer is not in the context, state \"I cannot answer this question based on the provided information.\""
         )
-        
-        prompt = system_prompt + rag_prompt
-        model = genai.GenerativeModel(GEMINI_MODEL)
-        
-        response = model.generate_content(prompt)
-        answer = response.text
+        payload = {
+            "messages": [
+                { "role": "system", "content": system_prompt },
+                { "role": "user", "content": rag_prompt }
+            ],
+            "model": GITHUB_MODEL,
+            "temperature": 0.2
+        }
+        async with httpx.AsyncClient() as httpx_client:
+            response = await httpx_client.post(
+                "https://models.github.ai/inference/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=60.0
+            )
+            response.raise_for_status()
+            answer = response.json()["choices"][0]["message"]["content"]
+    except httpx.HTTPStatusError as e:
+        error_detail = e.response.text
+        try:
+            err_json = e.response.json()
+            if "error" in err_json and "message" in err_json["error"]:
+                error_detail = err_json["error"]["message"]
+        except Exception:
+            pass
+        print(f"HTTP status error calling GitHub Models API: {e.response.status_code} - {e.response.text}")
+        answer = f"LLM API Error ({e.response.status_code}): {error_detail}"
     except Exception as e:
-        print(f"Error calling Gemini API: {e}")
-        answer = f"Gemini API Error ({type(e).__name__}): {str(e)}"
+        print(f"Error calling GitHub Models API: {e}")
+        answer = f"LLM Connection Error ({type(e).__name__}): {str(e)}"
 
     # 4. Return formatted JSON response with citations and confidence
     confidence = compute_confidence_score(retrieved_chunks)
