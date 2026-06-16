@@ -6,13 +6,16 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql)
 ![Neo4j](https://img.shields.io/badge/Neo4j-Knowledge%20Graph-018bff?logo=neo4j)
 ![Kafka](https://img.shields.io/badge/Apache%20Kafka-Event%20Bus-231F20?logo=apachekafka)
-![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-white?logo=ollama)
+![Gemini](https://img.shields.io/badge/Google%20Gemini-AI%20Model-4285F4?logo=google)
 
 ---
 
 ## ⚡ 1. Step-by-Step Installation & Execution Guide
 
-This guide details the complete step-by-step commands to clone, run, and test the 14-container microservices ecosystem on **Linux**, **macOS**, and **Windows**.
+This guide details the complete step-by-step commands to clone, run, and test the microservices ecosystem on **Linux**, **macOS**, and **Windows**.
+
+> [!IMPORTANT]
+> The AI/RAG chatbot is powered by **Google Gemini API**. You need a valid `GEMINI_API_KEY` in your `.env` file before starting. Get a free key at [aistudio.google.com](https://aistudio.google.com/app/apikey).
 
 > [!NOTE]
 > The database initializes **empty of documents** so that you can upload your files directly using the platform's user interface. Only the three core user accounts (Admin, Expert, Reader) are seeded.
@@ -72,18 +75,7 @@ docker compose ps
 
 ---
 
-### 🧠 Step 3: Initialize the Local AI Model (Ollama)
-
-EvoKnow runs 100% locally. You must pull the language model inside the Ollama container before utilizing any AI/RAG features:
-
-```bash
-docker exec -it evo-know-ollama-1 ollama run llama3
-```
-*(Wait for the download to complete. Once the model prompt is active, type `/bye` and press Enter to exit back to your terminal).*
-
----
-
-### 🐘 Step 4: Initialize PostgreSQL & Neo4j Databases
+### 🐘 Step 3: Initialize PostgreSQL & Neo4j Databases
 
 Initialize the database schemas, indexes, and Neo4j graph constraints by executing the initialization script inside the running API Gateway container:
 
@@ -104,7 +96,7 @@ docker compose exec api-gateway python backend/scripts/init_databases.py
 
 ---
 
-### 🌐 Step 5: Access the Web Application & Log In
+### 🌐 Step 4: Access the Web Application & Log In
 
 Once all containers are running and databases are initialized, open your browser and navigate to the application:
 
@@ -122,7 +114,7 @@ Use these credentials on the login screen to access the application:
 
 ---
 
-### 📤 Step 6: Ingest Your First Document
+### 📤 Step 5: Ingest Your First Document
 
 1. Log in using `admin` or `expert` credentials.
 2. Navigate to **Base de connaissances** on the sidebar.
@@ -158,14 +150,14 @@ curl -X POST "http://127.0.0.1:8000/api/v1/ingest" \
 *Expected Response:* `{"status":"success","document_id":"...","chunks_created":5,"message":"Document successfully ingested..."}`
 
 ### 🟢 Test 3: Semantic Search & RAG Chat Query
-Query the ingested knowledge base in natural language (make sure you completed Step 3 first):
+Query the ingested knowledge base in natural language:
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/v1/query" \
   -H "Content-Type: application/json" \
   -d '{"question": "What databases are used in the system?", "top_k": 2}'
 ```
-*Expected Response:* An AI-generated answer using the local `llama3` model, referencing the source document.
+*Expected Response:* An AI-generated answer using the **Gemini API**, referencing the source document.
 
 ---
 
