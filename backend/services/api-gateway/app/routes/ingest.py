@@ -49,7 +49,7 @@ async def ingest_document(
         text_content = parser.parse(file_path)
     except Exception as e:
         print(f"❌ [Ingestion] Parsing failed for {file.filename}: {e}")
-        raise HTTPException(status_code=400, detail=f"Failed to parse document: {e}")
+        raise HTTPException(status_code=400, detail=f"Échec de l'analyse du document : {e}")
         
     # 3. Create Document record in Postgres
     doc = Document(
@@ -67,7 +67,7 @@ async def ingest_document(
     chunks = splitter.split(text_content)
     if not chunks:
         print(f"❌ [Ingestion] No extractable text in {file.filename}")
-        raise HTTPException(status_code=400, detail="Document contains no extractable text.")
+        raise HTTPException(status_code=400, detail="Le document est vide ou ne contient aucun texte extractible.")
         
     # 5. Generate embeddings & store chunks
     embeddings = encoder.encode(chunks)
@@ -150,7 +150,7 @@ async def delete_document(
     try:
         doc_uuid = UUID(doc_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid UUID format")
+        raise HTTPException(status_code=400, detail="Format UUID invalide")
         
     doc = db.query(Document).filter(Document.id == doc_uuid).first()
     if not doc:
