@@ -78,18 +78,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
             "bgClass": bg
         })
         
-    # If no database alerts exist, fallback to static template alerts
-    if not recent_alerts_payload:
-        recent_alerts_payload = [
-            { 
-                "id": "1", 
-                "title": "Obsolescence imminente (Seed)", 
-                "desc": "Accès au document 'OSS-4G-Procedure-v2' en baisse de 82% sur 30 jours.", 
-                "time": "Il y a 12 min", 
-                "severity": "high", 
-                "bgClass": "bg-rose-500/5 border-rose-100 border-l-rose-500" 
-            }
-        ]
+
 
     # Recent activities (logs)
     activities = db.query(AuditLog).order_by(AuditLog.performed_at.desc()).limit(5).all()
