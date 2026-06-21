@@ -117,23 +117,37 @@ async def handle_query(request: QueryRequest, db: Session = Depends(get_db)):
     }
 
 @router.get("/documents")
-async def get_all_documents(db: Session = Depends(get_db)):
+async def get_all_documents(limit: int = 10, offset: int = 0, search: str = None, department: str = None, db: Session = Depends(get_db)):
     """
     Get the list of all active documents in the database.
     """
-    docs = db.query(Document).filter(Document.status == "active").order_by(Document.uploaded_at.desc()).all()
-    return [
-        {
-            "id": str(d.id),
-            "title": d.title,
-            "source_type": d.source_type,
-            "department": d.department,
-            "uploaded_at": d.uploaded_at.strftime("%Y-%m-%d") if d.uploaded_at else None,
-            "uploaded_by": d.uploaded_by,
-            "status": d.status
-        }
-        for d in docs
-    ]
+    query = db.query(Document).filter(Document.status == "active")
+    if search:
+        query = query.filter(
+            (Document.title.ilike(f"%{search}%")) |
+            (Document.uploaded_by.ilike(f"%{search}%"))
+        )
+    if department and department != "Tous":
+        query = query.filter(Document.department == department)
+        
+    query = query.order_by(Document.uploaded_at.desc())
+    total = query.count()
+    docs = query.offset(offset).limit(limit).all()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": str(d.id),
+                "title": d.title,
+                "source_type": d.source_type,
+                "department": d.department,
+                "uploaded_at": d.uploaded_at.strftime("%Y-%m-%d") if d.uploaded_at else None,
+                "uploaded_by": d.uploaded_by,
+                "status": d.status
+            }
+            for d in docs
+        ]
+    }
 
 @router.get("/documents/{doc_id}/content")
 async def get_document_content(doc_id: str, db: Session = Depends(get_db)):
