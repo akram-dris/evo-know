@@ -144,34 +144,42 @@ const handleUpload = async () => {
   uploadError.value = '';
   currentUploadingIndex.value = 0;
   
-  try {
-    for (let i = 0; i < uploadFiles.value.length; i++) {
-      currentUploadingIndex.value = i + 1;
-      const file = uploadFiles.value[i];
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('department', uploadDept.value);
-      formData.append('uploaded_by', user.value.username || 'admin');
-      
+  const failedFiles = [];
+  
+  for (let i = 0; i < uploadFiles.value.length; i++) {
+    currentUploadingIndex.value = i + 1;
+    const file = uploadFiles.value[i];
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('department', uploadDept.value);
+    formData.append('uploaded_by', user.value.username || 'admin');
+    
+    try {
       await axios.post('/api/v1/ingest', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
       });
+    } catch (err) {
+      console.error(`Error uploading ${file.name}:`, err);
+      const detail = err.response?.data?.detail || 'Erreur lors du téléversement.';
+      failedFiles.push({ name: file.name, detail });
     }
-    
-    showUploadModal.value = false;
-    await fetchDocs();
-  } catch (err) {
-    console.error("Upload error:", err);
-    const fileName = uploadFiles.value[currentUploadingIndex.value - 1]?.name || 'Fichier inconnu';
-    const detail = err.response?.data?.detail || 'Erreur lors du téléversement.';
-    uploadError.value = `Erreur sur [${fileName}] : ${detail}`;
-    await fetchDocs();
-  } finally {
-    uploading.value = false;
   }
+  
+  await fetchDocs();
+  
+  if (failedFiles.length > 0) {
+    if (failedFiles.length === uploadFiles.value.length) {
+      uploadError.value = "Tous les fichiers ont échoué :\n" + failedFiles.map(f => `- ${f.name} : ${f.detail}`).join('\n');
+    } else {
+      uploadError.value = `${uploadFiles.value.length - failedFiles.length} fichiers importés avec succès. Les fichiers suivants ont échoué :\n` + failedFiles.map(f => `- ${f.name} : ${f.detail}`).join('\n');
+    }
+  } else {
+    showUploadModal.value = false;
+  }
+  uploading.value = false;
 };
 
 const handleDocDelete = (docId, title) => {
@@ -418,7 +426,7 @@ const filteredDocs = computed(() => {
           </div>
         </div>
 
-        <div v-if="uploadError" class="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+        <div v-if="uploadError" class="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold whitespace-pre-line">
           {{ uploadError }}
         </div>
 
