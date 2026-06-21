@@ -165,7 +165,9 @@ const handleUpload = async () => {
     await fetchDocs();
   } catch (err) {
     console.error("Upload error:", err);
-    uploadError.value = err.response?.data?.detail || "Erreur lors du téléversement de certains fichiers.";
+    const fileName = uploadFiles.value[currentUploadingIndex.value - 1]?.name || 'Fichier inconnu';
+    const detail = err.response?.data?.detail || 'Erreur lors du téléversement.';
+    uploadError.value = `Erreur sur [${fileName}] : ${detail}`;
     await fetchDocs();
   } finally {
     uploading.value = false;
