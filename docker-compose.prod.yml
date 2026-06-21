@@ -127,6 +127,8 @@ services:
       postgres:
         condition: service_healthy
     env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
     volumes:
       - ./backend:/app/backend
     deploy:
@@ -161,6 +163,8 @@ services:
       neo4j:
         condition: service_healthy
     env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
     deploy:
       resources:
         limits:
@@ -177,6 +181,8 @@ services:
       neo4j:
         condition: service_healthy
     env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
     deploy:
       resources:
         limits:

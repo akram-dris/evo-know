@@ -100,6 +100,8 @@ services:
       postgres:
         condition: service_healthy
     env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
     volumes:
       - ./backend:/app/backend
 
@@ -126,6 +128,8 @@ services:
       neo4j:
         condition: service_healthy
     env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
 
   t5-knowledge-discovery:
     build:
@@ -137,6 +141,8 @@ services:
       neo4j:
         condition: service_healthy
     env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
 
   frontend:
     build:
