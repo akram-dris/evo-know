@@ -37,6 +37,7 @@ async def ingest_document(
     7. Creates Neo4j nodes
     8. Publishes 'document.ingested' event to Kafka
     """
+    print(f"📥 [Ingestion] Processing file: {file.filename}")
     # 1. Save file
     os.makedirs("/data/raw", exist_ok=True)
     file_path = f"/data/raw/{file.filename}"
@@ -47,6 +48,7 @@ async def ingest_document(
     try:
         text_content = parser.parse(file_path)
     except Exception as e:
+        print(f"❌ [Ingestion] Parsing failed for {file.filename}: {e}")
         raise HTTPException(status_code=400, detail=f"Failed to parse document: {e}")
         
     # 3. Create Document record in Postgres
@@ -64,6 +66,7 @@ async def ingest_document(
     # 4. Chunk text
     chunks = splitter.split(text_content)
     if not chunks:
+        print(f"❌ [Ingestion] No extractable text in {file.filename}")
         raise HTTPException(status_code=400, detail="Document contains no extractable text.")
         
     # 5. Generate embeddings & store chunks
