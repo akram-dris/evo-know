@@ -142,7 +142,12 @@ onMounted(() => {
           <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[9px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">{{ recentAlerts.length }} Alerte{{ recentAlerts.length !== 1 ? 's' : '' }}</span>
         </div>
         
-        <div class="space-y-4">
+        <div v-if="recentAlerts.length === 0" class="text-center py-8 space-y-2">
+          <CheckCircle2 class="h-8 w-8 text-emerald-500 mx-auto" />
+          <p class="text-slate-800 text-xs font-bold">Aucune alerte active</p>
+          <p class="text-slate-500 text-[10px] font-semibold leading-relaxed max-w-[200px] mx-auto">Le système fonctionne de manière stable et cohérente.</p>
+        </div>
+        <div v-else class="space-y-4">
           <div v-for="alert in recentAlerts" :key="alert.id" 
                class="p-4 border-l-4 rounded-2xl border bg-slate-50/50 border-slate-100 space-y-2.5 hover:shadow-xs transition-all duration-200 cursor-pointer"
                :class="alert.bgClass">
@@ -167,7 +172,12 @@ onMounted(() => {
           </h2>
         </div>
         
-        <div class="divide-y divide-slate-100/80 space-y-4 max-h-[350px] overflow-y-auto pr-1">
+        <div v-if="recentActivity.length === 0" class="text-center py-8 space-y-2">
+          <Clock class="h-8 w-8 text-slate-300 mx-auto" />
+          <p class="text-slate-800 text-xs font-bold">Aucune activité récente</p>
+          <p class="text-slate-500 text-[10px] font-semibold leading-relaxed max-w-[200px] mx-auto">Aucun événement n'a été enregistré par l'orchestrateur.</p>
+        </div>
+        <div v-else class="divide-y divide-slate-100/80 space-y-4 max-h-[350px] overflow-y-auto pr-1">
           <div v-for="act in recentActivity" :key="act.id" class="pt-4 first:pt-0 flex items-start space-x-4">
             <span class="text-[9px] font-extrabold font-mono uppercase tracking-wider px-2.5 py-1 rounded-lg border shrink-0" :class="act.badgeColor">
               {{ act.type }}
