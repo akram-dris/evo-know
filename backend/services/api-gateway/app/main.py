@@ -18,7 +18,7 @@ def rebuild_faiss_on_startup():
 
         print("⚠️  FAISS index is empty — rebuilding from PostgreSQL...")
         db = SessionLocal()
-        chunks = db.query(KnowledgeChunk).all()
+        chunks = db.query(KnowledgeChunk.id, KnowledgeChunk.content).all()
         db.close()
 
         if not chunks:
