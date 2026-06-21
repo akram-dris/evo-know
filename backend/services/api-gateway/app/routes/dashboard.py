@@ -38,6 +38,22 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
         AuditLog.action.in_(["obsolescence_alert_raised", "conflict_escalated", "unknown_event"])
     ).order_by(AuditLog.performed_at.desc()).limit(3).all()
     
+    action_translations = {
+        "auto_supersede": "Remplacement automatique",
+        "conflict_escalated": "Conflit logique détecté",
+        "consistency_checked_orchestrated": "Vérification de cohérence",
+        "fusion_orchestrated": "Validation de fusion sémantique",
+        "document_ingestion_orchestrated": "Ingestion de document",
+        "prediction_scored_orchestrated": "Scoring d'obsolescence",
+        "obsolescence_alert_raised": "Alerte d'obsolescence émise",
+        "report_generation_orchestrated": "Génération de rapport",
+        "discovery_orchestrated": "Découverte de connaissances",
+        "unknown_event": "Événement inconnu",
+        "conflict_resolved_manually": "Conflit résolu manuellement",
+        "relation_approved": "Relation approuvée",
+        "manual_pipeline_scan_triggered": "Scan manuel du pipeline"
+    }
+
     recent_alerts_payload = []
     for a in alerts:
         severity = "critical" if a.action == "conflict_escalated" else "warning"
@@ -52,9 +68,10 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
         else:
             time_str = f"Il y a {diff.seconds // 3600} heures"
             
+        display_title = action_translations.get(a.action, a.action.replace("_", " ").title())
         recent_alerts_payload.append({
             "id": str(a.id),
-            "title": a.action.replace("_", " ").title(),
+            "title": display_title,
             "desc": a.explanation,
             "time": time_str,
             "severity": severity,
