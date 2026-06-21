@@ -1,0 +1,4 @@
+CIF Platform Maintenance Rules and Specifications:
+1. Regular maintenance of the Application Platform is done with the help of CIF Self Management.
+2. Symbol customizing and external access interface operations must ONLY be done on the standby slave servers. It must NEVER be done on the Master Server, to avoid any potential load or service disruption on the active master instance.
+3. Checking the status of the processes and performing all types of backups are restricted to non-production environments.

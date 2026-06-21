@@ -297,7 +297,11 @@ async def get_discovery_details(rel_id: str, db: Session = Depends(get_db)):
             if snippets:
                 snippet_text = "<br><span class='block mt-2'></span>".join(snippets)
             else:
-                snippet_text = "Concepts liés structurellement dans le graphe de connaissances."
+                snippet_text = (
+                    f"Ces concepts sont associés structurellement au document dans le graphe de connaissances "
+                    f"(par classification automatique ou extraction d'entités), bien que les termes exacts "
+                    f"'{entity_a}' et '{entity_b}' ne co-occurrent pas explicitement dans les paragraphes textuels."
+                )
                 
             contexts.append({
                 "document_id": str(doc.id),
