@@ -139,7 +139,7 @@ onMounted(() => {
             <AlertTriangle class="h-4.5 w-4.5 text-rose-500" />
             <span>Alertes d'IA actives</span>
           </h2>
-          <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[9px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">2 Alertes</span>
+          <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[9px] font-mono px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">{{ recentAlerts.length }} Alerte{{ recentAlerts.length !== 1 ? 's' : '' }}</span>
         </div>
         
         <div class="space-y-4">
