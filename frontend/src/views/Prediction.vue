@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import axios from 'axios';
 import { 
   ShieldAlert, 
@@ -19,6 +19,16 @@ const loading = ref(true);
 const searchQuery = ref('');
 const userRole = ref(localStorage.getItem('role') || 'Reader');
 const username = localStorage.getItem('username') || 'admin';
+const totalPredictions = ref(0);
+
+// Watch for search query and debounce / delay loading to avoid excessive API requests
+let searchDebounce = null;
+watch(searchQuery, (newVal) => {
+  if (searchDebounce) clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    fetchPredictions(false);
+  }, 300);
+});
 
 // Upload modal state
 const showUploadModal = ref(false);
@@ -94,11 +104,25 @@ const handleUpload = async () => {
   }
 };
 
-const fetchPredictions = async () => {
+const fetchPredictions = async (isLoadMore = false) => {
+  if (isLoadMore && loading.value) return;
   loading.value = true;
+  const limit = 10;
+  const offset = isLoadMore ? predictions.value.length : 0;
   try {
-    const res = await axios.get('/api/v1/tasks/predictions');
-    predictions.value = res.data;
+    const res = await axios.get('/api/v1/tasks/predictions', {
+      params: {
+        limit: limit,
+        offset: offset,
+        search: searchQuery.value || undefined
+      }
+    });
+    if (isLoadMore) {
+      predictions.value = [...predictions.value, ...res.data.items];
+    } else {
+      predictions.value = res.data.items;
+    }
+    totalPredictions.value = res.data.total;
   } catch (err) {
     console.error("Error fetching predictions:", err);
   } finally {
@@ -116,7 +140,7 @@ const handleDeleteDoc = (docId, title) => {
         await axios.delete(`/api/v1/ingest/documents/${docId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-        await fetchPredictions();
+        await fetchPredictions(false);
       } catch (err) {
         console.error("Delete error:", err);
         alertModal.value = {
@@ -129,16 +153,30 @@ const handleDeleteDoc = (docId, title) => {
 };
 
 const filteredPredictions = computed(() => {
-  if (!searchQuery.value) return predictions.value;
-  const query = searchQuery.value.toLowerCase();
-  return predictions.value.filter(item => 
-    item.title.toLowerCase().includes(query) || 
-    item.department.toLowerCase().includes(query)
-  );
+  return predictions.value;
 });
 
+const handleWindowScroll = async (event) => {
+  const target = event.target || document.documentElement;
+  const isDoc = target === document || target === document.documentElement || target === window || target === document.body;
+  const scrollHeight = isDoc ? document.documentElement.scrollHeight : target.scrollHeight;
+  const scrollTop = isDoc ? (document.documentElement.scrollTop || document.body.scrollTop) : target.scrollTop;
+  const clientHeight = isDoc ? document.documentElement.clientHeight : target.clientHeight;
+  
+  if (scrollHeight - scrollTop - clientHeight < 100) {
+    if (predictions.value.length < totalPredictions.value && !loading.value) {
+      await fetchPredictions(true);
+    }
+  }
+};
+
 onMounted(() => {
-  fetchPredictions();
+  fetchPredictions(false);
+  window.addEventListener('scroll', handleWindowScroll, true);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleWindowScroll, true);
 });
 </script>
 
@@ -181,7 +219,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="loading" class="text-center py-24 text-slate-500 font-medium">Chargement des prédictions d'obsolescence...</div>
+    <div v-if="loading && predictions.length === 0" class="text-center py-24 text-slate-500 font-medium">Chargement des prédictions d'obsolescence...</div>
     
     <div v-else class="bg-white border border-slate-200/50 rounded-3xl overflow-hidden shadow-[0_12px_35px_rgba(0,0,0,0.025)]">
       <div class="overflow-x-auto">
@@ -212,8 +250,8 @@ onMounted(() => {
                   </span>
                   <div class="w-32 bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner">
                     <div class="h-full rounded-full transition-all duration-500" 
-                         :class="item.score > 0.7 ? 'bg-gradient-to-r from-rose-500 to-rose-600' : (item.score > 0.4 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-emerald-500 to-emerald-600')"
-                         :style="{ width: (item.score * 100) + '%' }"></div>
+                          :class="item.score > 0.7 ? 'bg-gradient-to-r from-rose-500 to-rose-600' : (item.score > 0.4 ? 'bg-gradient-to-r from-amber-400 to-amber-500' : 'bg-gradient-to-r from-emerald-500 to-emerald-600')"
+                          :style="{ width: (item.score * 100) + '%' }"></div>
                   </div>
                 </div>
               </td>
@@ -241,6 +279,11 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+      
+      <!-- Scroll pagination indicator -->
+      <div v-if="predictions.length < totalPredictions" class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50/50 rounded-2xl border-t border-slate-200/50">
+        Faites défiler vers le bas pour charger plus de prédictions ({{ predictions.length }} affichées sur {{ totalPredictions }})
       </div>
     </div>
   </div>

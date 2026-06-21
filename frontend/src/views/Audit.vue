@@ -1,22 +1,40 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { History, ShieldCheck, RefreshCw } from 'lucide-vue-next';
 import axios from 'axios';
 import Button from 'primevue/button';
 
 const auditLogs = ref([]);
-const loading = ref(true);
+const loading = ref(false);
+const totalLogs = ref(0);
+const offset = ref(0);
+const limit = 10;
 
 const formatDate = (dateString) => {
   const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
   return new Date(dateString).toLocaleDateString('fr-FR', options);
 };
 
-const fetchAuditLogs = async () => {
+const fetchAuditLogs = async (append = false) => {
+  if (loading.value) return;
   loading.value = true;
   try {
-    const response = await axios.get(`/api/v1/audit`);
-    auditLogs.value = response.data;
+    if (!append) {
+      offset.value = 0;
+    }
+    const response = await axios.get(`/api/v1/audit`, {
+      params: {
+        limit: limit,
+        offset: offset.value
+      }
+    });
+    const formatted = response.data.items || [];
+    if (append) {
+      auditLogs.value.push(...formatted);
+    } else {
+      auditLogs.value = formatted;
+    }
+    totalLogs.value = response.data.total || 0;
   } catch (error) {
     console.error("Error fetching audit logs:", error);
   } finally {
@@ -24,8 +42,28 @@ const fetchAuditLogs = async () => {
   }
 };
 
+const handleWindowScroll = async (event) => {
+  const target = event.target || document.documentElement;
+  const isDoc = target === document || target === document.documentElement || target === window || target === document.body;
+  const scrollHeight = isDoc ? document.documentElement.scrollHeight : target.scrollHeight;
+  const scrollTop = isDoc ? (document.documentElement.scrollTop || document.body.scrollTop) : target.scrollTop;
+  const clientHeight = isDoc ? document.documentElement.clientHeight : target.clientHeight;
+  
+  if (scrollHeight - scrollTop - clientHeight < 100) {
+    if (auditLogs.value.length < totalLogs.value && !loading.value) {
+      offset.value += limit;
+      await fetchAuditLogs(true);
+    }
+  }
+};
+
 onMounted(() => {
   fetchAuditLogs();
+  window.addEventListener('scroll', handleWindowScroll, true);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleWindowScroll, true);
 });
 </script>
 
@@ -36,13 +74,13 @@ onMounted(() => {
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Registre d'audit XAI</h1>
         <p class="text-slate-500 text-sm mt-2 font-medium">Piste d'audit et descriptions d'IA explicables pour les décisions autonomes.</p>
       </div>
-      <Button @click="fetchAuditLogs" class="bg-white! hover:bg-slate-50! text-slate-700! text-xs! px-4! py-2.5! rounded-xl! font-bold! border-slate-200/80! border! transition! flex! items-center! cursor-pointer!">
+      <Button @click="fetchAuditLogs(false)" class="bg-white! hover:bg-slate-50! text-slate-700! text-xs! px-4! py-2.5! rounded-xl! font-bold! border-slate-200/80! border! transition! flex! items-center! cursor-pointer!">
         <RefreshCw class="h-4 w-4 mr-2" :class="{'animate-spin': loading}" />
         <span>Actualiser</span>
       </Button>
     </div>
 
-    <div v-if="loading" class="text-center py-24 text-slate-500 font-medium">Chargement des registres d'audit...</div>
+    <div v-if="loading && auditLogs.length === 0" class="text-center py-24 text-slate-500 font-medium">Chargement des registres d'audit...</div>
     
     <div v-else class="bg-white border border-slate-200/50 rounded-3xl overflow-hidden shadow-[0_12px_35px_rgba(0,0,0,0.025)]">
       <div class="overflow-x-auto">
@@ -75,6 +113,11 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+      
+      <!-- Scroll pagination indicator -->
+      <div v-if="auditLogs.length < totalLogs" class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50/50 rounded-2xl border-t border-slate-200/50">
+        Faites défiler vers le bas pour charger plus d'audits ({{ auditLogs.length }} affichés sur {{ totalLogs }})
       </div>
     </div>
   </div>

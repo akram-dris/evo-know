@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import RAGChatbot from '../components/widgets/RAGChatbot.vue';
 import { 
   Search, 
@@ -28,6 +28,15 @@ const uploadDepartments = ['Support IT', 'Infrastructure', 'Sécurité', 'R&D', 
 
 const docsList = ref([]);
 const loading = ref(true);
+const totalDocs = ref(0);
+
+let searchDebounce = null;
+watch([searchQuery, selectedDept], () => {
+  if (searchDebounce) clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    fetchDocs(false);
+  }, 300);
+});
 
 // Role states
 const role = ref(localStorage.getItem('role') || '');
@@ -59,11 +68,21 @@ const alertModal = ref({
   message: ''
 });
 
-const fetchDocs = async () => {
+const fetchDocs = async (isLoadMore = false) => {
+  if (isLoadMore && loading.value) return;
   loading.value = true;
+  const limit = 10;
+  const offset = isLoadMore ? docsList.value.length : 0;
   try {
-    const res = await axios.get(`/api/v1/query/documents?t=${Date.now()}`);
-    docsList.value = res.data.map(d => ({
+    const res = await axios.get('/api/v1/query/documents', {
+      params: {
+        limit: limit,
+        offset: offset,
+        search: searchQuery.value || undefined,
+        department: selectedDept.value || undefined
+      }
+    });
+    const parsedDocs = res.data.items.map(d => ({
       id: d.id,
       title: d.title,
       type: d.source_type,
@@ -72,6 +91,12 @@ const fetchDocs = async () => {
       author: d.uploaded_by || 'seeding_script',
       status: d.status
     }));
+    if (isLoadMore) {
+      docsList.value = [...docsList.value, ...parsedDocs];
+    } else {
+      docsList.value = parsedDocs;
+    }
+    totalDocs.value = res.data.total;
   } catch (err) {
     console.error("Error fetching documents:", err);
   } finally {
@@ -169,17 +194,21 @@ const handleDocDelete = (docId, title) => {
   };
 };
 
+const handleContainerScroll = async (event) => {
+  const target = event.target;
+  if (target.scrollHeight - target.scrollTop - target.clientHeight < 50) {
+    if (docsList.value.length < totalDocs.value && !loading.value) {
+      await fetchDocs(true);
+    }
+  }
+};
+
 onMounted(() => {
-  fetchDocs();
+  fetchDocs(false);
 });
 
 const filteredDocs = computed(() => {
-  return docsList.value.filter(doc => {
-    const matchesSearch = doc.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-                          doc.author.toLowerCase().includes(searchQuery.value.toLowerCase());
-    const matchesDept = selectedDept.value === 'Tous' || doc.dept === selectedDept.value;
-    return matchesSearch && matchesDept;
-  });
+  return docsList.value;
 });
 </script>
 
@@ -260,9 +289,8 @@ const filteredDocs = computed(() => {
               <span>{{ dept }}</span>
             </Button>
           </div>
-
-          <!-- Document List -->
-          <div class="flex-1 overflow-y-auto pr-1 space-y-3.5 min-h-[300px]">
+               <!-- Document List -->
+          <div @scroll="handleContainerScroll" class="flex-1 overflow-y-auto pr-1 space-y-3.5 min-h-[300px]">
             <div v-for="doc in filteredDocs" :key="doc.id" 
                  class="p-4 rounded-2xl border border-slate-200/60 bg-slate-50/20 hover:bg-slate-50/80 transition-all duration-200 flex justify-between items-center group">
               <div class="flex items-center space-x-3.5 min-w-0">
@@ -295,7 +323,7 @@ const filteredDocs = computed(() => {
                   <button 
                     @click="openViewDoc(doc.id, doc.title)"
                     title="Lire le document"
-                    class="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition border border-slate-200/40 cursor-pointer"
+                    class="p-1.5 text-indigo-600 hover:bg-indigo-550 rounded-lg transition border border-slate-200/40 cursor-pointer"
                   >
                     <Eye class="h-3.5 w-3.5" />
                   </button>
@@ -312,7 +340,15 @@ const filteredDocs = computed(() => {
                 </div>
               </div>
             </div>
-            <div v-if="filteredDocs.length === 0" class="text-slate-450 font-medium text-center py-12">Aucun document ne correspond à vos critères.</div>
+             <div v-if="loading && filteredDocs.length === 0" class="text-center py-12 text-slate-450 font-bold font-mono">
+               Chargement du catalogue...
+             </div>
+             <div v-else-if="filteredDocs.length === 0" class="text-slate-450 font-medium text-center py-12">Aucun document ne correspond à vos critères.</div>
+            
+            <!-- Scroll pagination indicator inside container -->
+            <div v-if="docsList.length < totalDocs" class="text-center py-4 text-[10px] text-slate-400 font-bold bg-slate-50/30 rounded-xl border border-dashed border-slate-200/50">
+              Faites défiler pour charger plus... ({{ docsList.length }}/{{ totalDocs }})
+            </div>
           </div>
         </div>
 
