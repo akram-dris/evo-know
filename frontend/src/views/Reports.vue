@@ -2,7 +2,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import axios from 'axios';
 import MarkdownIt from 'markdown-it';
-import { RefreshCw } from 'lucide-vue-next';
+import { RefreshCw, FileText } from 'lucide-vue-next';
 import Button from 'primevue/button';
 
 const md = new MarkdownIt();
@@ -249,22 +249,28 @@ onMounted(() => {
       <div class="col-span-1 bg-white border border-slate-200/50 rounded-3xl p-5 space-y-4 shadow-sm flex flex-col h-[600px]">
         <h3 class="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2.5">Rapports Historiques</h3>
         <div @scroll="handleContainerScroll" class="space-y-3 overflow-y-auto flex-1 pr-1">
-          <div v-for="rep in reports" :key="rep.id" @click="selectReport(rep)" 
-               class="p-4 rounded-2xl border cursor-pointer transition-all duration-200"
-               :class="selectedReport && selectedReport.id === rep.id 
-                       ? 'bg-indigo-50/50 border-indigo-400/80 shadow-xs' 
-                       : 'bg-slate-50/50 border-slate-200/60 hover:bg-slate-50 hover:border-slate-350'">
-            <div class="flex justify-between items-center text-[10px] font-bold font-mono tracking-wider text-slate-400 uppercase">
-              <span class="text-indigo-600">{{ rep.report_type }}</span>
-              <span>{{ formatDate(rep.generated_at) }}</span>
+          <div v-if="reports.length === 0" class="text-center py-20 space-y-4">
+            <FileText class="h-10 w-10 text-slate-350 mx-auto" />
+            <p class="text-slate-400 text-xs font-semibold leading-relaxed max-w-[150px] mx-auto">Aucun rapport généré pour le moment.</p>
+          </div>
+          <template v-else>
+            <div v-for="rep in reports" :key="rep.id" @click="selectReport(rep)" 
+                 class="p-4 rounded-2xl border cursor-pointer transition-all duration-200"
+                 :class="selectedReport && selectedReport.id === rep.id 
+                         ? 'bg-indigo-50/50 border-indigo-400/80 shadow-xs' 
+                         : 'bg-slate-50/50 border-slate-200/60 hover:bg-slate-50 hover:border-slate-350'">
+              <div class="flex justify-between items-center text-[10px] font-bold font-mono tracking-wider text-slate-400 uppercase">
+                <span class="text-indigo-600">{{ rep.report_type }}</span>
+                <span>{{ formatDate(rep.generated_at) }}</span>
+              </div>
+              <p class="text-xs font-bold text-slate-800 mt-2">{{ rep.report_type }}</p>
             </div>
-            <p class="text-xs font-bold text-slate-800 mt-2">{{ rep.report_type }}</p>
-          </div>
-          
-          <!-- Scroll pagination indicator inside container -->
-          <div v-if="reports.length < totalReports" class="text-center py-4 text-[10px] text-slate-400 font-bold bg-slate-50/30 rounded-xl border border-dashed border-slate-200/50">
-            Faites défiler pour charger plus... ({{ reports.length }}/{{ totalReports }})
-          </div>
+            
+            <!-- Scroll pagination indicator inside container -->
+            <div v-if="reports.length < totalReports" class="text-center py-4 text-[10px] text-slate-400 font-bold bg-slate-50/30 rounded-xl border border-dashed border-slate-200/50">
+              Faites défiler pour charger plus... ({{ reports.length }}/{{ totalReports }})
+            </div>
+          </template>
         </div>
       </div>
       
@@ -317,7 +323,15 @@ onMounted(() => {
             </div>
           </div>
         </div>
-        <div v-else class="text-slate-400 font-medium text-center my-auto py-20">Sélectionnez un rapport pour afficher son contenu.</div>
+        <div v-else class="text-center my-auto py-20 space-y-4">
+          <div class="h-16 w-16 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <FileText class="h-8 w-8" />
+          </div>
+          <div class="space-y-1">
+            <h3 class="font-extrabold text-slate-800 text-sm">Aucun contenu à afficher</h3>
+            <p class="text-slate-400 text-xs font-semibold leading-relaxed max-w-xs mx-auto">Veuillez d'abord générer ou sélectionner un rapport dans le volet de gauche.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

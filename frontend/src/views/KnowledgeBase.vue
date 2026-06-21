@@ -343,7 +343,10 @@ const filteredDocs = computed(() => {
              <div v-if="loading && filteredDocs.length === 0" class="text-center py-12 text-slate-450 font-bold font-mono">
                Chargement du catalogue...
              </div>
-             <div v-else-if="filteredDocs.length === 0" class="text-slate-450 font-medium text-center py-12">Aucun document ne correspond à vos critères.</div>
+             <div v-else-if="filteredDocs.length === 0" class="text-center py-12 space-y-3">
+               <FolderOpen class="h-8 w-8 text-slate-300 mx-auto" />
+               <p class="text-slate-450 text-xs font-semibold leading-relaxed max-w-[200px] mx-auto">Aucun document ne correspond à vos critères.</p>
+             </div>
             
             <!-- Scroll pagination indicator inside container -->
             <div v-if="docsList.length < totalDocs" class="text-center py-4 text-[10px] text-slate-400 font-bold bg-slate-50/30 rounded-xl border border-dashed border-slate-200/50">

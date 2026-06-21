@@ -82,6 +82,16 @@ onUnmounted(() => {
 
     <div v-if="loading && auditLogs.length === 0" class="text-center py-24 text-slate-500 font-medium">Chargement des registres d'audit...</div>
     
+    <div v-else-if="auditLogs.length === 0" class="bg-white border border-slate-200/50 rounded-3xl p-12 text-center shadow-[0_8px_30px_rgba(0,0,0,0.015)] space-y-5 max-w-xl mx-auto mt-10">
+      <div class="h-16 w-16 bg-slate-50 text-slate-500 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+        <History class="h-8 w-8" />
+      </div>
+      <div class="space-y-2">
+        <h3 class="font-extrabold text-slate-800 text-lg">Aucun registre d'audit</h3>
+        <p class="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto font-medium">Le registre d'audit XAI est actuellement vide. Les actions automatiques du système s'afficheront ici au fur et à mesure.</p>
+      </div>
+    </div>
+    
     <div v-else class="bg-white border border-slate-200/50 rounded-3xl overflow-hidden shadow-[0_12px_35px_rgba(0,0,0,0.025)]">
       <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">

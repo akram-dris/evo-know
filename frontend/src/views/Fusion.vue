@@ -127,6 +127,16 @@ onUnmounted(() => {
 
     <div v-if="loading && fusions.length === 0" class="text-center py-24 text-slate-500 font-medium">Chargement des fusions complétées...</div>
     
+    <div v-else-if="fusions.length === 0" class="bg-white border border-slate-200/50 rounded-3xl p-12 text-center shadow-[0_8px_30px_rgba(0,0,0,0.015)] space-y-5 max-w-xl mx-auto mt-10">
+      <div class="h-16 w-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+        <GitMerge class="h-8 w-8" />
+      </div>
+      <div class="space-y-2">
+        <h3 class="font-extrabold text-slate-800 text-lg">Aucune fusion de connaissances</h3>
+        <p class="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto font-medium">Aucun événement de fusion sémantique n'a été enregistré. Lancez le scan ou importez de nouveaux documents pour fusionner les doublons.</p>
+      </div>
+    </div>
+    
     <div v-else class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div v-for="event in fusions" :key="event.id" 
