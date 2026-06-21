@@ -10,6 +10,7 @@ ENV PYTHONPATH=/app/backend/services/api-gateway:/app/backend
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    antiword \
     && rm -rf /var/lib/apt/lists/*
 
 COPY services/api-gateway/requirements.txt .
