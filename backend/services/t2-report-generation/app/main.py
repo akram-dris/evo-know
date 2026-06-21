@@ -132,10 +132,10 @@ def handle_message(topic, payload):
             print(f"📊 [T2-Report] Knowledge discovery event. Triggering discovery report.")
             
         elif topic == "report.trigger":
-            report_type = payload.get("report_type", "weekly_summary")
+            report_type = payload.get("report_type", "rapport_manuel")
             trigger_generation = True
             
-            if report_type == "weekly_summary":
+            if report_type in ["weekly_summary", "rapport_manuel"]:
                 total_docs = db.query(Document).filter(Document.status == "active").count()
                 archived_docs = db.query(Document).filter(Document.status == "archived").count()
                 context_data["system_stats"] = {
@@ -146,11 +146,21 @@ def handle_message(topic, payload):
             print(f"📊 [T2-Report] Manual or scheduled report trigger received for type: {report_type}.")
 
         if trigger_generation and report_type:
-            print(f"📊 [T2-Report] Generating {report_type}...")
-            report_content = generate_report(report_type, context_data, db)
+            french_types = {
+                "alert_report": "Rapport d'Alerte",
+                "fusion_report": "Rapport de Fusion",
+                "consistency_report": "Rapport de Cohérence",
+                "discovery_report": "Rapport de Découverte",
+                "rapport_manuel": "Rapport Manuel",
+                "weekly_summary": "Rapport Hebdomadaire"
+            }
+            display_type = french_types.get(report_type, report_type)
+            
+            print(f"📊 [T2-Report] Generating {display_type}...")
+            report_content = generate_report(display_type, context_data, db)
             
             report_entry = UpdateReport(
-                report_type=report_type,
+                report_type=display_type,
                 content_md=report_content
             )
             db.add(report_entry)
@@ -162,9 +172,9 @@ def handle_message(topic, payload):
                 service="t2-report-generation",
                 details={
                     "report_id": str(report_entry.id),
-                    "report_type": report_type
+                    "report_type": display_type
                 },
-                explanation=f"Rapport de type '{report_type}' généré avec succès par l'IA et enregistré dans la base de données."
+                explanation=f"Rapport de type '{display_type}' généré avec succès par l'IA et enregistré dans la base de données."
             )
             db.add(audit)
             db.commit()
@@ -172,11 +182,11 @@ def handle_message(topic, payload):
             producer = KafkaProducerWrapper()
             producer.publish("report.generated", {
                 "report_id": str(report_entry.id),
-                "report_type": report_type,
+                "report_type": display_type,
                 "generated_at": datetime.utcnow().isoformat()
             })
             producer.flush()
-            print(f"📊 [T2-Report] Report {report_entry.id} of type {report_type} published successfully.")
+            print(f"📊 [T2-Report] Report {report_entry.id} of type {display_type} published successfully.")
             
     except Exception as e:
         print(f"⚠️ [T2-Report] Error in message handler: {e}")
